@@ -548,6 +548,7 @@ class VarManager : public TObject
     kTOFnSigmaPi,
     kTOFnSigmaKa,
     kTOFnSigmaPr,
+    kTPCTOFnSigmaPr, // Yuanjing add in Jan 22, 2025 
     kTrackTimeResIsRange, // Gaussian or range (see Framework/DataTypes)
     kPVContributor,       // This track has contributed to the collision vertex fit (see Framework/DataTypes)
     kOrphanTrack,         // Track has no association with any collision vertex (see Framework/DataTypes)
@@ -798,6 +799,11 @@ class VarManager : public TObject
     kDeltaPhi,
     kDeltaPhiSym,
     kNCorrelationVariables,
+
+    // Dilepton-hadron femto variables
+    // Yuanjing add 2024.12.22
+    kDileptonHadronKstar, 
+
 
     // Dilepton-track-track variables
     kQuadMass,
@@ -4721,6 +4727,58 @@ void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float*
 }
 
 template <typename T1, typename T2>
+void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, float* values, float hadronMass)
+{
+  if (!values) {
+    values = fgValues;
+  }
+
+  if (fgUsedVars[kPairMass] || fgUsedVars[kPairPt] || fgUsedVars[kPairEta] || fgUsedVars[kPairPhi] || fgUsedVars[kPairMassDau] || fgUsedVars[kPairPtDau] || fgUsedVars[kDileptonHadronKstar] ) {
+    ROOT::Math::PtEtaPhiMVector v1(dilepton.pt(), dilepton.eta(), dilepton.phi(), dilepton.mass());
+    ROOT::Math::PtEtaPhiMVector v2(hadron.pt(), hadron.eta(), hadron.phi(), hadronMass);
+    ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+    values[kPairMass] = v12.M();
+    values[kPairPt] = v12.Pt();
+    values[kPairEta] = v12.Eta();
+    values[kPairPhi] = v12.Phi();
+    values[kPairMassDau] = dilepton.mass();
+    values[kPairPtDau] = dilepton.pt();
+    values[kMassDau] = hadronMass;
+    values[kDeltaMass] = v12.M() - dilepton.mass();
+
+    // Yuanjing Ji added Dec 22, 2024
+    ROOT::Math::PtEtaPhiMVector v12_Qvect = v1 - v2;
+    double Pinv = v12.M();
+    double Q1 = ( dilepton.mass()*dilepton.mass() - hadronMass*hadronMass )/Pinv;
+    values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
+
+    // fill hadron info
+    values[kPt] = hadron.pt();
+    values[kCharge] = hadron.sign();
+  }
+  if (fgUsedVars[kDeltaPhi]) {
+    double delta = dilepton.phi() - hadron.phi();
+    if (delta > 3.0 / 2.0 * M_PI) {
+      delta -= 2.0 * M_PI;
+    }
+    if (delta < -0.5 * M_PI) {
+      delta += 2.0 * M_PI;
+    }
+    values[kDeltaPhi] = delta;
+  }
+  if (fgUsedVars[kDeltaPhiSym]) {
+    double delta = std::abs(dilepton.phi() - hadron.phi());
+    if (delta > M_PI) {
+      delta = 2 * M_PI - delta;
+    }
+    values[kDeltaPhiSym] = delta;
+  }
+  if (fgUsedVars[kDeltaEta]) {
+    values[kDeltaEta] = dilepton.eta() - hadron.eta();
+  }
+}
+
+template <typename T1, typename T2>
 void VarManager::FillDileptonPhoton(T1 const& dilepton, T2 const& photon, float* values)
 {
   if (!values) {
@@ -4760,6 +4818,23 @@ void VarManager::FillHadron(T const& hadron, float* values, float hadronMass)
   values[kEta] = hadron.eta();
   values[kPhi] = hadron.phi();
   values[kRap] = vhadron.Rapidity();
+}
+
+template <typename T>
+void VarManager::FillHadronFemto(T const& hadron, float* values, float hadronMass)
+{
+  if (!values) {
+    values = fgValues;
+  }
+
+  ROOT::Math::PtEtaPhiMVector vhadron(hadron.pt(), hadron.eta(), hadron.phi(), hadronMass);
+  values[kMass] = hadronMass;
+  values[kPt] = hadron.pt();
+  values[kEta] = hadron.eta();
+  values[kPhi] = hadron.phi();
+  values[kRap] = vhadron.Rapidity();
+  values[kTPCnSigmaPr] = hadron.tpcNSigmaPr();
+  values[kTPCTOFnSigmaPr] = sqrt(hadron.tofNSigmaPr()*hadron.tofNSigmaPr()+hadron.tpcNSigmaPr()*hadron.tpcNSigmaPr());
 }
 
 template <int partType, typename Cand, typename H, typename T>

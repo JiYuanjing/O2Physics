@@ -929,6 +929,25 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("protonPIDPV3")) {
+    cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF3"));
+    cut->AddCut(GetAnalysisCut("protonPVcut"));
+    return cut;
+  }
+
+  if (!nameStr.compare("protonPIDPV4")) {
+    cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF4"));
+    cut->AddCut(GetAnalysisCut("protonPVcut"));
+    return cut;
+  }
+
+  //for proton purity estimation
+  if (!nameStr.compare("protonPIDPV5")) {
+    cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF5"));
+    cut->AddCut(GetAnalysisCut("protonPVcut"));
+    return cut;
+  }
+
   if (!nameStr.compare("PrimaryTrack_DCAz")) {
     cut->AddCut(GetAnalysisCut("PrimaryTrack_DCAz"));
     return cut;
@@ -5628,6 +5647,26 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
     return cut;
   }
+
+  if (!nameStr.compare("protonPID_TPCnTOF3")) {
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kPt, 0.0, 0.8, false);
+    // cut->AddCut(sqrt(VarManager::kTPCnSigmaPr*VarManager::kTPCnSigmaPr+VarManager::kTOFnSigmaPr*VarManager::kTOFnSigmaPr), 0.0, 2.5, false, VarManager::kPt, 0.8, 1e+10, false);
+    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kPt, 0.8, 1e+10, false);
+    return cut;
+  }
+
+  if (!nameStr.compare("protonPID_TPCnTOF4")) {
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
+    cut->AddCut(VarManager::kTOFnSigmaPr, -3., 3.);
+    return cut;
+  }
+
+  if (!nameStr.compare("protonPID_TPCnTOF5")) {
+    cut->AddCut(VarManager::kTPCnSigmaPr, -10, 10, false, VarManager::kPt, 0.0, 0.8, false);
+    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 12, false, VarManager::kPt, 0.8, 1e+10, false);
+    return cut;
+  }
+
 
   if (!nameStr.compare("tpc_pion_rejection")) {
     TF1* f1maxPi = new TF1("f1maxPi", "[0]+[1]*x", 0, 10);

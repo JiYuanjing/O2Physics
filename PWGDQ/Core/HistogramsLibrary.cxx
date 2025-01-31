@@ -558,6 +558,9 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "TPCnSigPr_pIN", "TPC n-#sigma(p) vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         hm->AddHistogram(histClass, "TPCnSigPr_timeFromSOR", "TPC n-#sigma(p) vs time from SOR", true, 10000, 0.0, 1000.0, VarManager::kTimeFromSOR, 10, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         hm->AddHistogram(histClass, "TPCnSigPr_occupancy", "TPC n-#sigma(p) vs. occupancy", false, 200, 0., 20000., VarManager::kTrackOccupancyInTimeRange, 100, -5.0, 5.0, VarManager::kTPCnSigmaPr);
+        // Yuanjing add in Jan 22, 2025
+        hm->AddHistogram(histClass, "TPCnSigPr_pT", "TPC n-#sigma(p) vs pT", false, 100, 0.0, 5.0, VarManager::kPt, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
+        hm->AddHistogram(histClass, "TPCTOFnSigPr_pT", "TPC+TOF n-#sigma(p) vs pT", false, 100, 0.0, 5.0, VarManager::kPt, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
         if (subGroupStr.Contains("tpcpid_Corr")) {
           hm->AddHistogram(histClass, "TPCnSigEl_Corr_pIN", "TPC n-#sigma(e) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaEl_Corr);
           hm->AddHistogram(histClass, "TPCnSigPi_Corr_pIN", "TPC n-#sigma(#pi) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaPi_Corr);
@@ -1649,6 +1652,10 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "Mass_Pt", "", false, 40, 0.0, 20.0, VarManager::kPairMass, 40, 0.0, 20.0, VarManager::kPairPt);
       hm->AddHistogram(histClass, "Mass", "", false, 750, 0.0, 30.0, VarManager::kPairMass);
       hm->AddHistogram(histClass, "Pt", "", false, 750, 0.0, 30.0, VarManager::kPairPt);
+      if (subGroupStr.Contains("mixedevent-femto")) {
+        hm->AddHistogram(histClass, "DileptonHadronKstar", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar);
+        hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMass", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5,5.0, VarManager::kPairMassDau);
+      }
     }
     if (subGroupStr.Contains("invmass")) {
       hm->AddHistogram(histClass, "Mass_Dilepton", "", false, 125, 0.0, 5.0, VarManager::kPairMassDau);
@@ -1741,6 +1748,13 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       int varsJPsiHadCorr[4] = {VarManager::kPairMassDau, VarManager::kDeltaEta, VarManager::kDeltaPhi, VarManager::kPairPtDau};
       hm->AddHistogram(histClass, "InvMass_DelEta_DelPhi", "", 4, varsJPsiHadCorr, nJPsiHadCorr); // Without efficiency
       // hm->AddHistogram(histClass, "InvMass_DelEta_DelPhi", "", 4, varsJPsiHadCorr, nJPsiHadCorr, nullptr, VarManager::kJpsiHadronEff);
+    }
+    // Yuanjing Jan22, 2025 
+    if (subGroupStr.Contains("dilepton-hadron-femto")) {
+      // hm->AddHistogram(histClass, "DileptonHadronKstar", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar);
+      hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMass", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5,5.0, VarManager::kPairMassDau);
+      // hm->AddHistogram(histClass, "HadronPtTpcnSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, -3.,3., VarManager::kTPCnSigmaPr);
+      // hm->AddHistogram(histClass, "HadronPtComSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, 0.0,3., VarManager::kTPCTOFnSigmaPr);
     }
     if (subGroupStr.Contains("opencharm")) {
       hm->AddHistogram(histClass, "Delta_Mass_DstarD0region", "", false, 50, 0.14, 0.16, VarManager::kDeltaMass);
