@@ -1859,7 +1859,7 @@ struct AnalysisDileptonHadron {
     }
     // loop once over dileptons for QA purposes
     for (auto dilepton : dileptons) {
-      // cout <<" loop dilepton" <<endl;
+      cout <<" loop dilepton" <<endl;
       VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
 
       // get the index of the electron legs
@@ -1915,8 +1915,8 @@ struct AnalysisDileptonHadron {
         fHistMan->FillHistClass("DileptonHadronFemtoSE", fValuesHadron);
 
         //Yuanjing added Dec 22, 2024
-        //JpsiHadronTable(fValuesHadron[VarManager::kPairMass], fValuesHadron[VarManager::kPairPt], fValuesHadron[VarManager::kPairEta],fValuesHadron[VarManager::kPairPhi],fValuesHadron[VarManager::kDileptonHadronKstar],fValuesHadron[VarManager::kDeltaMass],fValuesHadron[VarManager::kPairMassDau],fValuesHadron[VarManager::kPairPtDau],fValuesHadron[VarManager::kMassDau]); 
-        //To do: add jpsi mass, pt, eta, phi, daughters pt eta phi and DCA cut/proper decay length, hadron DCA
+        // JpsiHadronTable(fValuesHadron[VarManager::kPairMass], fValuesHadron[VarManager::kPairPt], fValuesHadron[VarManager::kPairEta],fValuesHadron[VarManager::kPairPhi],fValuesHadron[VarManager::kDileptonHadronKstar],fValuesHadron[VarManager::kDeltaMass],fValuesHadron[VarManager::kPairMassDau],fValuesHadron[VarManager::kPairPtDau],fValuesHadron[VarManager::kMassDau]); 
+        // To do: add jpsi mass, pt, eta, phi, daughters pt eta phi and DCA cut/proper decay length, hadron DCA
       }
     }
   }
@@ -2145,177 +2145,6 @@ struct AnalysisDileptonHadron {
   PROCESS_SWITCH(AnalysisDileptonHadron, processDummy, "Dummy function", false);
 };
 
-struct AnalysisDileptonTrackTrack {
-  OutputObj<THashList> fOutputList{"output"};
-
-  Configurable<std::string> fConfigTrackCut1{"cfgTrackCut1", "pionPIDCut1", "track1 cut"}; // used for select the tracks from SelectedTracks
-  Configurable<std::string> fConfigTrackCut2{"cfgTrackCut2", "pionPIDCut2", "track2 cut"}; // used for select the tracks from SelectedTracks
-  Configurable<std::string> fConfigDileptonCut{"cfgDiLeptonCut", "pairJpsi2", "Dilepton cut"};
-  Configurable<std::string> fConfigQuadrupletCuts{"cfgQuadrupletCuts", "pairX3872Cut1", "Comma separated list of Dilepton-Track-Track cut"};
-  Configurable<std::string> fConfigAddDileptonHistogram{"cfgAddDileptonHistogram", "barrel", "Comma separated list of histograms"};
-  Configurable<std::string> fConfigAddQuadrupletHistogram{"cfgAddQuadrupletHistogram", "xtojpsipipi", "Comma separated list of histograms"};
-
-  Produces<aod::DileptonTrackTrackCandidates> DileptonTrackTrackTable;
-
-  Filter eventFilter = aod::dqanalysisflags::isEventSelected == 1;
-  Filter dileptonFilter = aod::reducedpair::sign == 0;
-  Filter filterBarrelTrackSelected = aod::dqanalysisflags::isBarrelSelected > 0;
-
-  constexpr static uint32_t fgDileptonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::Pair; // fill map
-
-  // use some values array to avoid mixing up the quantities
-  float* fValuesDitrack;
-  float* fValuesQuadruplet;
-  HistogramManager* fHistMan;
-
-  // cut name setting
-  TString fTrackCutName1;
-  TString fTrackCutName2;
-  bool fIsSameTrackCut = false;
-  AnalysisCompositeCut fDileptonCut;
-  std::vector<TString> fQuadrupletCutNames;
-  std::vector<AnalysisCompositeCut> fQuadrupletCuts;
-
-  void init(o2::framework::InitContext& context)
-  {
-    if (context.mOptions.get<bool>("processDummy")) {
-      return;
-    }
-
-    fValuesQuadruplet = new float[VarManager::kNVars];
-    VarManager::SetDefaultVarNames();
-    fHistMan = new HistogramManager("analysisHistos", "aa", VarManager::kNVars);
-    fHistMan->SetUseDefaultVariableNames(kTRUE);
-    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
-
-    // define cuts
-    fTrackCutName1 = fConfigTrackCut1.value;
-    fTrackCutName2 = fConfigTrackCut2.value;
-    if (fTrackCutName1 == fTrackCutName2) {
-      fIsSameTrackCut = true;
-    }
-    TString configDileptonCutNamesStr = fConfigDileptonCut.value;
-    fDileptonCut = *dqcuts::GetCompositeCut(configDileptonCutNamesStr.Data());
-    TString configQuadruletCutNamesStr = fConfigQuadrupletCuts.value;
-    std::unique_ptr<TObjArray> objArray(configQuadruletCutNamesStr.Tokenize(","));
-    for (Int_t icut = 0; icut < objArray->GetEntries(); ++icut) {
-      TString cutName = objArray->At(icut)->GetName();
-      fQuadrupletCutNames.push_back(cutName);
-      fQuadrupletCuts.push_back(*dqcuts::GetCompositeCut(cutName.Data()));
-    }
-
-    if (!context.mOptions.get<bool>("processDummy")) {
-      DefineHistograms(fHistMan, Form("Dileptons_%s", configDileptonCutNamesStr.Data()), fConfigAddDileptonHistogram);
-      if (!configQuadruletCutNamesStr.IsNull()) {
-        for (std::size_t icut = 0; icut < fQuadrupletCutNames.size(); ++icut) {
-          if (fIsSameTrackCut) {
-            DefineHistograms(fHistMan, Form("QuadrupletSEPM_%s", fQuadrupletCutNames[icut].Data()), fConfigAddQuadrupletHistogram);
-          } else {
-            DefineHistograms(fHistMan, Form("QuadrupletSEPM_%s", fQuadrupletCutNames[icut].Data()), fConfigAddQuadrupletHistogram);
-            DefineHistograms(fHistMan, Form("QuadrupletSEMP_%s", fQuadrupletCutNames[icut].Data()), fConfigAddQuadrupletHistogram);
-          }
-          DefineHistograms(fHistMan, Form("QuadrupletSEPP_%s", fQuadrupletCutNames[icut].Data()), fConfigAddQuadrupletHistogram);
-          DefineHistograms(fHistMan, Form("QuadrupletSEMM_%s", fQuadrupletCutNames[icut].Data()), fConfigAddQuadrupletHistogram);
-        }
-      }
-    }
-
-    VarManager::SetUseVars(fHistMan->GetUsedVars());
-    fOutputList.setObject(fHistMan->GetMainHistogramList());
-  }
-  // Template function to run pair - track - track combinations
-  template <int TCandidateType, uint32_t TEventFillMap, uint32_t TTrackFillMap, typename TEvent, typename TTracks>
-  void runDileptonTrackTrack(TEvent const& event, TTracks const& tracks, soa::Filtered<MyDielectronCandidates> const& dileptons)
-  {
-    VarManager::ResetValues(0, VarManager::kNVars, fValuesQuadruplet);
-    VarManager::FillEvent<TEventFillMap>(event, fValuesQuadruplet);
-
-    // LOGF(info, "Number of dileptons: %d", dileptons.size());
-
-    // loop over dileptons
-    for (auto dilepton : dileptons) {
-      VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesQuadruplet);
-
-      // apply the dilepton cut
-      if (!fDileptonCut.IsSelected(fValuesQuadruplet))
-        continue;
-
-      fHistMan->FillHistClass(Form("Dileptons_%s", fDileptonCut.GetName()), fValuesQuadruplet);
-
-      // get the index of the electron legs
-      int indexLepton1 = dilepton.index0Id();
-      int indexLepton2 = dilepton.index1Id();
-
-      // loop over hadrons pairs
-      for (auto& [t1, t2] : combinations(tracks, tracks)) {
-        // avoid self-combinations
-        if (t1.globalIndex() == indexLepton1 || t1.globalIndex() == indexLepton2 || t2.globalIndex() == indexLepton1 || t2.globalIndex() == indexLepton2) {
-          continue;
-        }
-
-        if (fIsSameTrackCut) {
-          if (!(static_cast<uint32_t>(t1.isBarrelSelected()) & (static_cast<uint32_t>(1) << 1)) || !(static_cast<uint32_t>(t2.isBarrelSelected()) & (static_cast<uint32_t>(1) << 1))) {
-            continue;
-          }
-        } else {
-          if (!(static_cast<uint32_t>(t1.isBarrelSelected()) & (static_cast<uint32_t>(1) << 1)) || !(static_cast<uint32_t>(t2.isBarrelSelected()) & (static_cast<uint32_t>(1) << 2))) {
-            continue;
-          }
-        }
-
-        // fill variables
-        VarManager::FillDileptonTrackTrack<TCandidateType>(dilepton, t1, t2, fValuesQuadruplet);
-
-        int iCut = 0;
-        uint32_t CutDecision = 0;
-        for (auto cutname = fQuadrupletCutNames.begin(); cutname != fQuadrupletCutNames.end(); cutname++, iCut++) {
-          // apply dilepton-track-track cut
-          if (fQuadrupletCuts[iCut].IsSelected(fValuesQuadruplet)) {
-            CutDecision |= (1 << iCut);
-            if (fIsSameTrackCut) {
-              if (t1.sign() * t2.sign() < 0) {
-                fHistMan->FillHistClass(Form("QuadrupletSEPM_%s", fQuadrupletCutNames[iCut].Data()), fValuesQuadruplet);
-              }
-            } else {
-              if ((t1.sign() < 0) && (t2.sign() > 0)) {
-                fHistMan->FillHistClass(Form("QuadrupletSEMP_%s", fQuadrupletCutNames[iCut].Data()), fValuesQuadruplet);
-              } else if ((t1.sign() > 0) && (t2.sign() < 0)) {
-                fHistMan->FillHistClass(Form("QuadrupletSEPM_%s", fQuadrupletCutNames[iCut].Data()), fValuesQuadruplet);
-              }
-            }
-            if ((t1.sign() > 0) && (t2.sign() > 0)) {
-              fHistMan->FillHistClass(Form("QuadrupletSEPP_%s", fQuadrupletCutNames[iCut].Data()), fValuesQuadruplet);
-            } else if ((t1.sign() < 0) && (t2.sign() < 0)) {
-              fHistMan->FillHistClass(Form("QuadrupletSEMM_%s", fQuadrupletCutNames[iCut].Data()), fValuesQuadruplet);
-            }
-          }
-        } // loop over dilepton-track-track cuts
-
-        // table to be written out for ML analysis
-        if (!CutDecision)
-          continue;
-        DileptonTrackTrackTable(fValuesQuadruplet[VarManager::kQuadMass], fValuesQuadruplet[VarManager::kQuadPt], fValuesQuadruplet[VarManager::kQuadEta], fValuesQuadruplet[VarManager::kQuadPhi], fValuesQuadruplet[VarManager::kRap],
-                                fValuesQuadruplet[VarManager::kQ], fValuesQuadruplet[VarManager::kDeltaR1], fValuesQuadruplet[VarManager::kDeltaR2],
-                                dilepton.mass(), dilepton.pt(), dilepton.eta(), dilepton.phi(), dilepton.sign(),
-                                fValuesQuadruplet[VarManager::kDitrackMass], fValuesQuadruplet[VarManager::kDitrackPt], t1.pt(), t2.pt(), t1.eta(), t2.eta(), t1.phi(), t2.phi(), t1.sign(), t2.sign());
-      } // end loop over track-track pairs
-    } // end loop over dileptons
-  }
-
-  void processJpsiPiPi(soa::Filtered<MyEventsVtxCovSelected>::iterator const& event, MyBarrelTracksSelectedWithCov const& tracks, soa::Filtered<MyDielectronCandidates> const& dileptons)
-  {
-    runDileptonTrackTrack<VarManager::kXtoJpsiPiPi, gkEventFillMapWithCov, gkTrackFillMapWithCov>(event, tracks, dileptons);
-  }
-
-  void processDummy(MyEvents&)
-  {
-    // do nothing
-  }
-
-  PROCESS_SWITCH(AnalysisDileptonTrackTrack, processJpsiPiPi, "Run dilepton-dihadron pairing to study X(3872), using skimmed data", false);
-  PROCESS_SWITCH(AnalysisDileptonTrackTrack, processDummy, "Dummy function", false);
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
@@ -2326,7 +2155,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     adaptAnalysisTask<AnalysisEventMixing>(cfgc),
     adaptAnalysisTask<AnalysisSameEventPairing>(cfgc),
     adaptAnalysisTask<AnalysisDileptonHadron>(cfgc),
-    adaptAnalysisTask<AnalysisDileptonTrackTrack>(cfgc)};
+    // adaptAnalysisTask<AnalysisDileptonTrackTrack>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses, Configurable<std::string> configVar)
