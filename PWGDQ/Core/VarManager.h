@@ -1085,10 +1085,16 @@ class VarManager : public TObject
   static void FillDileptonTrackVertexing(C const& collision, T1 const& lepton1, T1 const& lepton2, T1 const& track, float* values);
   template <typename T1, typename T2>
   static void FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
+  //Femto: Yuanjing added Feb 1, 2025
+  template <typename T1, typename T2>
+  static void FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <typename T1, typename T2>
   static void FillDileptonPhoton(T1 const& dilepton, T2 const& photon, float* values = nullptr);
   template <typename T>
   static void FillHadron(T const& hadron, float* values = nullptr, float hadronMass = 0.0f);
+  //Femto: Yuanjing added Feb 1, 2025
+  template <typename T>
+  static void FillHadronFemto(T const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <int partType, typename Cand, typename H, typename T>
   static void FillSingleDileptonCharmHadron(Cand const& candidate, H hfHelper, T& bdtScoreCharmHad, float* values = nullptr);
   template <int partTypeCharmHad, typename DQ, typename HF, typename H, typename T>
@@ -2500,6 +2506,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTOFnSigmaPi] = track.tofNSigmaPi();
     values[kTOFnSigmaKa] = track.tofNSigmaKa();
     values[kTOFnSigmaPr] = track.tofNSigmaPr();
+    values[kTPCTOFnSigmaPr] = sqrt(track.tofNSigmaPr()*track.tofNSigmaPr() + track.tpcNSigmaPr()*track.tpcNSigmaPr() );
 
     if (fgUsedVars[kTPCsignalRandomized] || fgUsedVars[kTPCnSigmaElRandomized] || fgUsedVars[kTPCnSigmaPiRandomized] || fgUsedVars[kTPCnSigmaPrRandomized]) {
       // NOTE: this is needed temporarily for the study of the impact of TPC pid degradation on the quarkonium triggers in high lumi pp
