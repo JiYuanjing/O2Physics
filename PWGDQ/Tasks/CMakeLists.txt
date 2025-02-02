@@ -9,10 +9,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2physics_add_dpl_workflow(table-reader
-                    SOURCES tableReader.cxx
+# o2physics_add_dpl_workflow(table-reader
+#                     SOURCES tableReader.cxx
+#                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
+#                     COMPONENT_NAME Analysis)
+o2physics_add_dpl_workflow(table-reader-femto
+                    SOURCES tableReader_pjpsifemto_v0.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
                     COMPONENT_NAME Analysis)
+
 
 o2physics_add_dpl_workflow(table-reader-with-assoc
                     SOURCES tableReader_withAssoc.cxx
