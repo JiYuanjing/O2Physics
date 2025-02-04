@@ -804,6 +804,7 @@ class VarManager : public TObject
     // Dilepton-hadron femto variables
     // Yuanjing add 2024.12.22
     kDileptonHadronKstar, 
+    kDileptonP,
 
 
     // Dilepton-track-track variables
@@ -4751,6 +4752,7 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
     values[kPairPhi] = v12.Phi();
     values[kPairMassDau] = dilepton.mass();
     values[kPairPtDau] = dilepton.pt();
+    values[kDileptonP] = v1.P();
     values[kMassDau] = hadronMass;
     values[kDeltaMass] = v12.M() - dilepton.mass();
 
@@ -4762,6 +4764,7 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
 
     // fill hadron info
     values[kPt] = hadron.pt();
+    values[kP] = v2.P();
     values[kCharge] = hadron.sign();
   }
   if (fgUsedVars[kDeltaPhi]) {

@@ -399,8 +399,10 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
   if (!groupStr.CompareTo("track")) {
     hm->AddHistogram(histClass, "Pt", "p_{T} distribution", false, 2000, 0.0, 20.0, VarManager::kPt);
     hm->AddHistogram(histClass, "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);
+    //Yuanjing added
+    hm->AddHistogram(histClass, "Eta_Pt", "#eta vs pt distribution", false, 50, 0.0, 5.0, VarManager::kPt, 100, -2.0, 2.0, VarManager::kEta);
     hm->AddHistogram(histClass, "Phi", "#varphi distribution", false, 500, -2. * o2::constants::math::PI, 2. * o2::constants::math::PI, VarManager::kPhi);
-    hm->AddHistogram(histClass, "Phi_Pt", "#varphi distribution", false, 50, 0.0, 10.0, VarManager::kPt, 720, 0.0, o2::constants::math::TwoPI, VarManager::kPhi);
+    hm->AddHistogram(histClass, "Phi_Pt", "#varphi distribution", false, 50, 0.0, 5.0, VarManager::kPt, 720, 0.0, o2::constants::math::TwoPI, VarManager::kPhi);
     hm->AddHistogram(histClass, "IsPVcontrib_pt", "is PV contributor vs pt", false, 50, 0.0, 50.0, VarManager::kPt, 2, -0.5, 1.5, VarManager::kPVContributor);
     hm->AddHistogram(histClass, "IsPVcontrib_pt_prof", "is PV contributor vs pt", true, 50, 0.0, 50.0, VarManager::kPt, 2, -0.5, 1.5, VarManager::kPVContributor);
     if (subGroupStr.Contains("ambiguity") && !subGroupStr.Contains("muon")) {
@@ -559,8 +561,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "TPCnSigPr_timeFromSOR", "TPC n-#sigma(p) vs time from SOR", true, 10000, 0.0, 1000.0, VarManager::kTimeFromSOR, 10, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         hm->AddHistogram(histClass, "TPCnSigPr_occupancy", "TPC n-#sigma(p) vs. occupancy", false, 200, 0., 20000., VarManager::kTrackOccupancyInTimeRange, 100, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         // Yuanjing add in Jan 22, 2025
-        hm->AddHistogram(histClass, "TPCnSigPr_pT", "TPC n-#sigma(p) vs pT", false, 100, 0.0, 5.0, VarManager::kPt, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
-        hm->AddHistogram(histClass, "TPCTOFnSigPr_pT", "TPC+TOF n-#sigma(p) vs pT", false, 100, 0.0, 5.0, VarManager::kPt, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
+        hm->AddHistogram(histClass, "TPCnSigPr_p", "TPC n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
+        hm->AddHistogram(histClass, "TPCTOFnSigPr_p", "TPC+TOF n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
         if (subGroupStr.Contains("tpcpid_Corr")) {
           hm->AddHistogram(histClass, "TPCnSigEl_Corr_pIN", "TPC n-#sigma(e) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaEl_Corr);
           hm->AddHistogram(histClass, "TPCnSigPi_Corr_pIN", "TPC n-#sigma(#pi) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaPi_Corr);
@@ -1655,6 +1657,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       if (subGroupStr.Contains("mixedevent-femto")) {
         hm->AddHistogram(histClass, "DileptonHadronKstar", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar);
         hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMass", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5,5.0, VarManager::kPairMassDau);
+        hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassDileptonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kDileptonP);
+        hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassProtonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kP);
       }
     }
     if (subGroupStr.Contains("invmass")) {
@@ -1755,6 +1759,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMass", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5,5.0, VarManager::kPairMassDau);
       // hm->AddHistogram(histClass, "HadronPtTpcnSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, -3.,3., VarManager::kTPCnSigmaPr);
       // hm->AddHistogram(histClass, "HadronPtComSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, 0.0,3., VarManager::kTPCTOFnSigmaPr);
+      hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassDileptonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kDileptonP);
+      hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassProtonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kP);
     }
     if (subGroupStr.Contains("opencharm")) {
       hm->AddHistogram(histClass, "Delta_Mass_DstarD0region", "", false, 50, 0.14, 0.16, VarManager::kDeltaMass);
