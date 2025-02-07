@@ -84,6 +84,10 @@ void o2::aod::dqmixing::SetUpMixing(MixingHandler* mh, const char* mixingVarible
     std::vector<float> fZLimsHashing = {-10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f};
     mh->AddMixingVariable(VarManager::kVtxZ, fZLimsHashing.size(), fZLimsHashing);
   }
+  // if (!nameStr.compare("Multi1")) {
+  //   std::vector<float> fMulti= {0.0f, 50.0f, 100.0f, 150.0f, 200.0f, 250.0f, 50000.0f};
+  //   mh->AddMixingVariable(VarManager::kMultFT0C, fMulti.size(), fMulti);
+  // }
   if (!nameStr.compare("Occupancy1")) {
     std::vector<float> fOccLimsHashing = {0.0f, 500.0f, 1000.0f, 2000.0f, 3000.0f, 6000.0f, 50000.0f};
     mh->AddMixingVariable(VarManager::kTrackOccupancyInTimeRange, fOccLimsHashing.size(), fOccLimsHashing);
