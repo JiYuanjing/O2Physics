@@ -2448,7 +2448,6 @@ void VarManager::FillTrack(T const& track, float* values)
 template <uint32_t fillMap, typename T, typename C>
 void VarManager::FillTrackCollision(T const& track, C const& collision, float* values)
 {
-
   if (!values) {
     values = fgValues;
   }
@@ -4321,7 +4320,6 @@ void VarManager::FillSpectatorPlane(C const& collision, float* values)
 template <uint32_t fillMap, int pairType, typename T1, typename T2>
 void VarManager::FillPairVn(T1 const& t1, T2 const& t2, float* values)
 {
-
   if (!values) {
     values = fgValues;
   }
