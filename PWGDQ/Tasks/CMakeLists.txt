@@ -14,7 +14,7 @@ o2physics_add_dpl_workflow(table-reader
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
                     COMPONENT_NAME Analysis)
 o2physics_add_dpl_workflow(table-reader-with-assoc-femto
-                    SOURCES tableReader_withAssoc_pjpsi.cxx
+                    SOURCES tableReader_withAssoc_pJpsi_femto.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
                     COMPONENT_NAME Analysis)
 
