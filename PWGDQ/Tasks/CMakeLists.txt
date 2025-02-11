@@ -13,10 +13,10 @@ o2physics_add_dpl_workflow(table-reader
                     SOURCES tableReader.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
                     COMPONENT_NAME Analysis)
-# o2physics_add_dpl_workflow(table-reader-femto
-#                     SOURCES tableReader_pjpsifemto_v0.cxx
-#                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
-#                     COMPONENT_NAME Analysis)
+o2physics_add_dpl_workflow(table-reader-with-assoc-femto
+                    SOURCES tableReader_withAssoc_pjpsi.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
+                    COMPONENT_NAME Analysis)
 
 
 o2physics_add_dpl_workflow(table-reader-with-assoc
