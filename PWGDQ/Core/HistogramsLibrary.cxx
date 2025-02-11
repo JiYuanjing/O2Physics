@@ -563,6 +563,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         // Yuanjing add in Jan 22, 2025
         hm->AddHistogram(histClass, "TPCnSigPr_p", "TPC n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
         hm->AddHistogram(histClass, "TPCTOFnSigPr_p", "TPC+TOF n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
+        hm->AddHistogram(histClass, "TOFnSigPr_p", "TOF n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, 0.0, 12.0, VarManager::kTOFnSigmaPr);
+        hm->AddHistogram(histClass, "TPCdedx_p", "TPC dE/dx vs p", false, 100, 0.0, 10.0, VarManager::kP, 200, 0.0, 200., VarManager::kTPCsignal);
         if (subGroupStr.Contains("tpcpid_Corr")) {
           hm->AddHistogram(histClass, "TPCnSigEl_Corr_pIN", "TPC n-#sigma(e) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaEl_Corr);
           hm->AddHistogram(histClass, "TPCnSigPi_Corr_pIN", "TPC n-#sigma(#pi) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaPi_Corr);

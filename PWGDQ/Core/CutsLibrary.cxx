@@ -960,6 +960,13 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  // check dedx distribution
+  if (!nameStr.compare("protonPIDPV8")) {
+    // cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF6"));
+    cut->AddCut(GetAnalysisCut("protonPVcut"));
+    return cut;
+  }
+
   if (!nameStr.compare("PrimaryTrack_DCAz")) {
     cut->AddCut(GetAnalysisCut("PrimaryTrack_DCAz"));
     return cut;
@@ -5680,8 +5687,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   }
 
   if (!nameStr.compare("protonPID_TPCnTOF5")) {
-    cut->AddCut(VarManager::kTPCnSigmaPr, -10, 10);
-    cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.8, 1e+10, false);
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
+    // cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.8, 1e+10, false);
     return cut;
   }
 
