@@ -847,6 +847,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
     if (subGroupStr.Contains("tpcpidvstofpid")) {
       hm->AddHistogram(histClass, "tpcNSigmaKa_tofNSigmaKa", "", false, 200, -10., 10., VarManager::kTPCnSigmaKa, 200, -10., 10., VarManager::kTOFnSigmaKa);
       hm->AddHistogram(histClass, "tpcNSigmaPi_tofNSigmaPi", "", false, 200, -10., 10., VarManager::kTPCnSigmaPi, 200, -10., 10., VarManager::kTOFnSigmaPi);
+      hm->AddHistogram(histClass, "tpcNSigmaPr_tofNSigmaPr_P", "", false, 200, -10., 10., VarManager::kTPCnSigmaPr, 200, -10., 10., VarManager::kTOFnSigmaPi, 50, 0, 5, VarManager::kP);
     }
     if (subGroupStr.Contains("singlemucumulant")) {
       double PtBinEdges[67]; // 0-30GeV/c
