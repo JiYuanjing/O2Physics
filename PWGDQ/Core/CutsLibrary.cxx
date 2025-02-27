@@ -80,6 +80,17 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("MCHMID"));
     return cut;
   }
+  if (!nameStr.compare("ElectronForEMu")) {
+    cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug4"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaLoose"));
+    return cut;
+  }
+  if (!nameStr.compare("MuonForEMu")) {
+    cut->AddCut(GetAnalysisCut("muonLowPt5"));
+    cut->AddCut(GetAnalysisCut("muonQualityCuts"));
+    return cut;
+  }
   // ///////////////////////////////////////////////
   //           End of Cuts for CEFP               //
   // ///////////////////////////////////////////////
@@ -142,7 +153,13 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("electronPIDnsigmaMedium"));
     return cut;
   }
-
+  if (!nameStr.compare("electronSelection1_ionut_withTOFPID")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("dcaCut1_ionut"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaMedium_withLargeTOFPID"));
+    return cut;
+  }
   if (!nameStr.compare("electronSelection1_idstoreh")) { // same as electronSelection1_ionut, but with kIsSPDAny -> kIsITSibAny
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug4"));
@@ -2891,6 +2908,12 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("muonQualityCuts10SigmaPDCA_MCHMID")) {
+    cut->AddCut(GetAnalysisCut("muonQualityCuts10SigmaPDCA"));
+    cut->AddCut(GetAnalysisCut("MCHMID"));
+    return cut;
+  }
+
   if (!nameStr.compare("muonLowPt10SigmaPDCA")) {
     cut->AddCut(GetAnalysisCut("muonLowPt"));
     cut->AddCut(GetAnalysisCut("muonQualityCuts10SigmaPDCA"));
@@ -3613,6 +3636,19 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("emu_electron_specialTest")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKineForEMu"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug4"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaVeryVeryLoose2"));
+    return cut;
+  }
+
+  if (!nameStr.compare("emu_electron_specialTest2")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKineForEMu"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug4"));
+    return cut;
+  }
+
   if (!nameStr.compare("muonLooseTriggerTestCuts")) {
     cut->AddCut(GetAnalysisCut("muonLooseTriggerTestCuts"));
     return cut;
@@ -4128,6 +4164,12 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("jpsiKineSkimmed")) {
     cut->AddCut(VarManager::kPt, 0.7, 1000.0);
+    cut->AddCut(VarManager::kEta, -0.9, 0.9);
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiStandardKineForEMu")) {
+    cut->AddCut(VarManager::kPt, 5.0, 1000.0);
     cut->AddCut(VarManager::kEta, -0.9, 0.9);
     return cut;
   }
@@ -5383,8 +5425,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("electronPIDnsigmaVeryVeryLoose2")) {
     cut->AddCut(VarManager::kTPCnSigmaEl, -4.0, 4.0);
-    cut->AddCut(VarManager::kTPCnSigmaPr, 2.5, 3000.0);
-    cut->AddCut(VarManager::kTPCnSigmaPi, 2.5, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPr, 1.5, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPi, 1.5, 3000.0);
     return cut;
   }
 
@@ -5409,7 +5451,13 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     cut->AddCut(VarManager::kTPCnSigmaPi, 2.7, 3000.0);
     return cut;
   }
-
+  if (!nameStr.compare("electronPIDnsigmaMedium_withLargeTOFPID")) {
+    cut->AddCut(VarManager::kTPCnSigmaEl, -3.0, 3.0);
+    cut->AddCut(VarManager::kTPCnSigmaPr, 2.7, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPi, 2.7, 3000.0);
+    cut->AddCut(VarManager::kTOFnSigmaEl, -5.0, 5.0);
+    return cut;
+  }
   if (!nameStr.compare("electronPIDnsigmaSkewed")) {
     cut->AddCut(VarManager::kTPCnSigmaEl, -2.0, 3.0);
     cut->AddCut(VarManager::kTPCnSigmaPr, 3.5, 3000.0);
