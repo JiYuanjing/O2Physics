@@ -5675,8 +5675,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   }
 
   if (!nameStr.compare("protonPID_TPCnTOF3_2")) {
-    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.0, 0.8, false);
-    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kP, 0.8, 1e+10, false);
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.0, 0.9, false);
+    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kP, 0.9, 1e+10, false);
     return cut;
   }
 
