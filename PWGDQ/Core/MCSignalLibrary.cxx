@@ -1803,6 +1803,16 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     signal = new MCSignal(name, "Electron pair and pion pair from Psi2S", {pronge, pronge, prongPi, prongPi}, {2, 2, 1, 1});
     return signal;
   }
+
+  // Yuanjing: add triplets 
+  if (!nameStr.compare("eeFromJpsiProtonAny")) {
+    MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
+    MCProng prongProton(1, {2212}, {true}, {false}, {0}, {0}, {false});
+    signal = new MCSignal(name, "Electron pair from Jpsi and proton", {prongElectron, prongElectron, prongProton}, {-1, -1, -1});
+    return signal;
+  }
+
+  // to do: add non prompt proton 
   return nullptr;
 }
 
