@@ -2799,6 +2799,7 @@ struct AnalysisDileptonTrack {
   OutputObj<THashList> fOutputList{"output"};
 
   Configurable<string> fConfigTrackCuts{"cfgTrackCuts", "kaonPID", "Comma separated list of cuts for the track to be correlated with the dileptons"};
+  Configurable<float> fConfigDileptonSign{"cfgDileptonSign", 0, "The sign of the dilepton used in analysis, lepton1_sign * lepton2_sign"};
   Configurable<float> fConfigDileptonLowMass{"cfgDileptonLowMass", 2.8, "Low mass cut for the dileptons used in analysis"};
   Configurable<float> fConfigDileptonHighMass{"cfgDileptonHighMass", 3.2, "High mass cut for the dileptons used in analysis"};
   Configurable<float> fConfigDileptonpTCut{"cfgDileptonpTCut", 0.0, "pT cut for dileptons used in the triplet vertexing"};
@@ -3203,6 +3204,83 @@ struct AnalysisDileptonTrack {
     }
   }
 
+  // add by Yuanjing
+  // Template function to run pair - hadron combinations, femto
+  template <int TCandidateType, uint32_t TEventFillMap, uint32_t TTrackFillMap, typename TEvent, typename TTracks, typename TTrackAssocs, typename TDileptons>
+  void runDileptonHadronFemto(TEvent const& event, TTrackAssocs const& assocs, TTracks const& tracks, TDileptons const& dileptons)
+  {
+    VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
+    VarManager::ResetValues(0, VarManager::kNVars, fValuesDilepton);
+    VarManager::FillEvent<TEventFillMap>(event, fValuesHadron);
+    VarManager::FillEvent<TEventFillMap>(event, fValuesDilepton);
+
+    for (auto dilepton : dileptons) {
+      // get full track info of tracks based on the index
+      auto lepton1 = tracks.rawIteratorAt(dilepton.index0Id());
+      auto lepton2 = tracks.rawIteratorAt(dilepton.index1Id());
+      // Check that the dilepton has zero charge
+      // if (dilepton.sign() != 0) {
+      //   continue;
+      // }
+      // modified by Yuanjing
+      if ((dilepton.sign()==0 && fConfigDileptonSign.value>0) || (dilepton.sign()!=0 && fConfigDileptonSign.value<0)) continue;
+
+      VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
+
+      // loop over existing dilepton leg cuts (e.g. electron1, electron2, etc)
+      for (int icut = 0; icut < fNCuts; icut++) {
+
+        if (!dilepton.filterMap_bit(icut)) {
+          continue;
+        }
+
+        // regular dileptons
+        fHistMan->FillHistClass(Form("DileptonsSelected_%s", fTrackCutNames[icut].Data()), fValuesDilepton);
+
+      // loop over hadrons
+      for (auto& assoc : assocs) {
+
+        uint32_t trackSelection = 0;
+        if constexpr (TCandidateType == VarManager::kJpsiEEProton) {
+          // check the cuts fulfilled by this candidate track; if none just continue
+          trackSelection = (assoc.isBarrelSelected_raw() & fTrackCutBitMap);
+          if (!trackSelection) {
+            continue;
+          }
+
+          // get the track from this association
+          auto track = assoc.template reducedtrack_as<TTracks>();
+          // check that this track is not included in the current dilepton
+          if (track.globalIndex() == dilepton.index0Id() || track.globalIndex() == dilepton.index1Id()) {
+            continue;
+          }
+          // compute needed quantities
+          double hadronmass = 0.938272;
+          VarManager::FillDileptonHadronFemto(dilepton, track, fValuesHadron, hadronmass);
+          // VarManager::FillDileptonTrackVertexing<TCandidateType, TEventFillMap, TTrackFillMap>(event, lepton1, lepton2, track, fValuesHadron);
+        }
+
+        // Fill histograms for the triplets
+        // loop over dilepton / ditrack cuts
+        for (int icut = 0; icut < fNCuts; icut++) {
+
+          if (!dilepton.filterMap_bit(icut)) {
+            continue;
+          }
+
+          // loop over specified track cuts (the tracks to be combined with the dileptons)
+          for (int iTrackCut = 0; iTrackCut < fNCuts; iTrackCut++) {
+
+            if (!(trackSelection & (static_cast<uint32_t>(1) << iTrackCut))) {
+              continue;
+            }
+            fHistMan->FillHistClass(Form("DileptonTrack_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), fValuesHadron);
+          } // end loop over track cuts
+        } // end loop over dilepton cuts
+      }
+    }
+  }
+
   Preslice<aod::ReducedTracksAssoc> trackAssocsPerCollision = aod::reducedtrack_association::reducedeventId;
   Preslice<MyDielectronCandidates> dielectronsPerCollision = aod::reducedpair::reducedeventId;
   Preslice<MyDitrackCandidates> ditracksPerCollision = aod::reducedpair::reducedeventId;
@@ -3223,6 +3301,25 @@ struct AnalysisDileptonTrack {
       auto groupedBarrelAssocs = assocs.sliceBy(trackAssocsPerCollision, event.globalIndex());
       auto groupedDielectrons = dileptons.sliceBy(dielectronsPerCollision, event.globalIndex());
       runDileptonHadron<VarManager::kBtoJpsiEEK, gkEventFillMapWithCov, gkTrackFillMapWithCov>(event, groupedBarrelAssocs, tracks, groupedDielectrons);
+    }
+  }
+
+  void processJpsiHadronFemto(soa::Filtered<MyEventsVtxCovSelected> const& events,
+                            soa::Filtered<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> const& assocs,
+                            MyBarrelTracksWithCov const& tracks, soa::Filtered<MyDielectronCandidates> const& dileptons)
+  {
+    // set up KF or DCAfitter
+    if (events.size() == 0) {
+      return;
+    }
+    if (fCurrentRun != events.begin().runNumber()) { // start: runNumber
+      initParamsFromCCDB(events.begin().timestamp());
+      fCurrentRun = events.begin().runNumber();
+    } // end: runNumber
+    for (auto& event : events) {
+      auto groupedBarrelAssocs = assocs.sliceBy(trackAssocsPerCollision, event.globalIndex());
+      auto groupedDielectrons = dileptons.sliceBy(dielectronsPerCollision, event.globalIndex());
+      runDileptonHadronFemto<VarManager::kJpsiEEProton, gkEventFillMapWithCov, gkTrackFillMapWithCov>(event, groupedBarrelAssocs, tracks, groupedDielectrons);
     }
   }
 
@@ -3376,6 +3473,7 @@ struct AnalysisDileptonTrack {
   }
 
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelSkimmed, "Run barrel dilepton-track pairing, using skimmed data", false);
+  PROCESS_SWITCH(AnalysisDileptonTrack, processJpsiHadronFemto, "Run barrel dilepton-track pairing for femto, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processDstarToD0Pi, "Run barrel pairing of D0 daughters with pion candidate, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMuonSkimmed, "Run muon dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelMixedEvent, "Run barrel dilepton-hadron mixed event pairing", false);
@@ -3455,7 +3553,9 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses, const char
     }
 
     if (classStr.Contains("DileptonTrackME")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "dilepton-track", "mixedevent");
+      // dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "dilepton-track", "mixedevent");
+      // Modified by Yuanjing
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "dilepton-track", histName);
     }
 
     if (classStr.Contains("HadronsSelected")) {
