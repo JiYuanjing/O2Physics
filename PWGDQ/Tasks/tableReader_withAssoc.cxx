@@ -3236,6 +3236,7 @@ struct AnalysisDileptonTrack {
 
         // regular dileptons
         fHistMan->FillHistClass(Form("DileptonsSelected_%s", fTrackCutNames[icut].Data()), fValuesDilepton);
+      } // end loop over single lepton selections
 
       // loop over hadrons
       for (auto& assoc : assocs) {
