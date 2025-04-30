@@ -3218,13 +3218,14 @@ struct AnalysisDileptonTrack {
   void init(o2::framework::InitContext& context)
   {
     bool isBarrel = context.mOptions.get<bool>("processBarrelSkimmed");
+    bool isBarrelFemto = context.mOptions.get<bool>("processJpsiHadronFemto");
     bool isBarrelAsymmetric = context.mOptions.get<bool>("processDstarToD0Pi");
     bool isMuon = context.mOptions.get<bool>("processMuonSkimmed");
     bool isMCGen = context.mOptions.get<bool>("processMCGen") || context.mOptions.get<bool>("processMCGenWithEventSelection");
     bool isDummy = context.mOptions.get<bool>("processDummy");
 
     if (isDummy) {
-      if (isBarrel || isMuon || isBarrelAsymmetric || isMCGen) {
+      if (isBarrel || isBarrelFemto || isMuon || isBarrelAsymmetric || isMCGen) {
         LOG(fatal) << "Dummy function is enabled even if there are normal process functions running! Fix your config!" << endl;
       } else {
         LOG(info) << "Dummy function is enabled. Skipping the rest of the init function" << endl;
@@ -3300,7 +3301,7 @@ struct AnalysisDileptonTrack {
     // We need this to know the order in which they were computed, and also to make sure that in this task we do not ask
     //   for cuts which were not computed (in which case this will trigger a fatal)
     string cfgTrackSelection_TrackCuts;
-    if (isBarrel || isBarrelAsymmetric) {
+    if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
       getTaskOptionValue<string>(context, "analysis-track-selection", "cfgTrackCuts", cfgTrackSelection_TrackCuts, false);
     } else {
       getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCuts", cfgTrackSelection_TrackCuts, false);
@@ -3310,7 +3311,7 @@ struct AnalysisDileptonTrack {
       cfgTrackSelection_objArrayTrackCuts = TString(cfgTrackSelection_TrackCuts).Tokenize(",");
     }
     // get also the list of cuts specified via the JSON parameters
-    if (isBarrel || isBarrelAsymmetric) {
+    if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
       getTaskOptionValue<string>(context, "analysis-track-selection", "cfgBarrelTrackCutsJSON", cfgTrackSelection_TrackCuts, false);
     } else {
       getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCutsJSON", cfgTrackSelection_TrackCuts, false);
@@ -3362,7 +3363,7 @@ struct AnalysisDileptonTrack {
     string cfgPairing_TrackCuts;
     string cfgPairing_PairCuts;
     string cfgPairing_CommonTrackCuts;
-    if (isBarrel) {
+    if (isBarrel || isBarrelFemto) {
       getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgTrackCuts", cfgPairing_TrackCuts, false);
       getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgPairCuts", cfgPairing_PairCuts, false);
     } else if (isMuon) {
@@ -3402,7 +3403,7 @@ struct AnalysisDileptonTrack {
     std::unique_ptr<TObjArray> cfgPairing_objArrayTrackCuts(TString(cfgPairing_TrackCuts).Tokenize(","));
 
     // loop over single lepton cuts
-    if (isBarrel || isBarrelAsymmetric || isMuon) {
+    if (isBarrel || isBarrelFemto || isBarrelAsymmetric || isMuon) {
       for (int icut = 0; icut < fNCuts; ++icut) {
 
         // here we check that this cut is one of those used for building the dileptons
@@ -3706,7 +3707,7 @@ struct AnalysisDileptonTrack {
     } // end loop over dileptons
   }
 
-  // Run pair - hadron combinations, femto
+  // Template function to run pair - hadron combinations - for femto 
   template <int TCandidateType, uint32_t TEventFillMap, uint32_t TTrackFillMap, typename TEvent, typename TTracks, typename TTrackAssocs, typename TDileptons>
   void runDileptonHadronFemto(TEvent const& event, TTrackAssocs const& assocs, TTracks const& tracks, TDileptons const& dileptons, ReducedMCEvents const& /*mcEvents*/, ReducedMCTracks const& /*mcTracks*/)
   {
@@ -3743,32 +3744,12 @@ struct AnalysisDileptonTrack {
         // regular dileptons
         fHistMan->FillHistClass(Form("DileptonsSelected_%s", fTrackCutNames[icut].Data()), fValuesDilepton);
 
-        // other pairs, e.g.: D0s
-        if constexpr (TCandidateType == VarManager::kDstarToD0KPiPi) { // Dielectrons and Dimuons don't have the PairFilterMap column
-          for (int iCommonCut = 0; iCommonCut < fNCommonTrackCuts; iCommonCut++) {
-            if (dilepton.commonFilterMap_bit(fCommonTrackCutMap[iCommonCut])) {
-              fHistMan->FillHistClass(Form("DileptonsSelected_%s_%s", fTrackCutNames[icut].Data(), fCommonPairCutNames[iCommonCut].Data()), fValuesDilepton);
-            }
-          }
-          for (int iPairCut = 0; iPairCut < fNPairCuts; iPairCut++) {
-            if (dilepton.pairFilterMap_bit(iPairCut)) {
-              fHistMan->FillHistClass(Form("DileptonsSelected_%s_%s", fTrackCutNames[icut].Data(), fPairCutNames[icut].Data()), fValuesDilepton);
-              for (int iCommonCut = 0; iCommonCut < fNCommonTrackCuts; iCommonCut++) {
-                if (dilepton.commonFilterMap_bit(fCommonTrackCutMap[iCommonCut])) {
-                  fHistMan->FillHistClass(Form("DileptonsSelected_%s_%s_%s", fTrackCutNames[icut].Data(), fCommonPairCutNames[iCommonCut].Data(), fPairCutNames[icut].Data()), fValuesDilepton);
-                }
-              }
-            }
-          }
-        }
       }
 
       // loop over track associations
       for (auto& assoc : assocs) {
 
         uint32_t trackSelection = 0;
-
-        // added by Yuanjing
         if constexpr (TCandidateType == VarManager::kJpsiEEProton) {
           // check the cuts fulfilled by this candidate track; if none just continue
           trackSelection = (assoc.isBarrelSelected_raw() & fTrackCutBitMap);
@@ -3782,11 +3763,8 @@ struct AnalysisDileptonTrack {
             continue;
           }
           // compute needed quantities
-          // VarManager::FillDileptonHadron(dilepton, track, fValuesHadron);
-          // only need primary proton and jpsi 
+          VarManager::FillDileptonHadronFemto(dilepton, track, fValuesHadron, 0.938);
           // VarManager::FillDileptonTrackVertexing<TCandidateType, TEventFillMap, TTrackFillMap>(event, lepton1, lepton2, track, fValuesHadron);
-          double hadronmass = 0.938272;
-          VarManager::FillDileptonHadronFemto(dilepton, track, fValuesHadron, hadronmass);
 
           auto trackMC = track.reducedMCTrack();
           mcDecision = 0;
@@ -3797,10 +3775,10 @@ struct AnalysisDileptonTrack {
             }
           }
         }
+
         // Fill histograms for the triplets
         // loop over dilepton / ditrack cuts and MC signals
         for (int icut = 0; icut < fNCuts; icut++) {
-
           if (!dilepton.filterMap_bit(icut)) {
             continue;
           }
@@ -3808,19 +3786,19 @@ struct AnalysisDileptonTrack {
           // loop over specified track cuts (the tracks to be combined with the dileptons)
           for (int iTrackCut = 0; iTrackCut < fNCuts; iTrackCut++) {
 
-            if (!(trackSelection & (uint32_t(1) << iTrackCut))) {
+            if (!(trackSelection & (static_cast<uint32_t>(1) << iTrackCut))) {
               continue;
             }
 
-            fHistMan->FillHistClass(Form("DileptonTrackFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), fValuesHadron);
+            fHistMan->FillHistClass(Form("DileptonTrack_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), fValuesHadron);
             for (uint32_t isig = 0; isig < fRecMCSignals.size(); isig++) {
-              if (mcDecision & (uint32_t(1) << isig)) {
-                fHistMan->FillHistClass(Form("DileptonTrackFemtoMCMatched_%s_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data(), fRecMCSignals[isig]->GetName()), fValuesHadron);
+              if (mcDecision & (static_cast<uint32_t>(1) << isig)) {
+                fHistMan->FillHistClass(Form("DileptonTrackMCMatched_%s_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data(), fRecMCSignals[isig]->GetName()), fValuesHadron);
               }
             }
-
           } // end loop over track cuts
         } // end loop over dilepton cuts
+
       } // end loop over associations
     } // end loop over dileptons
   }
