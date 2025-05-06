@@ -1076,8 +1076,8 @@ struct AnalysisPrefilterSelection {
         runPrefilter<gkTrackFillMap>(groupedAssocs, tracks);
       }
     }
-
-    uint32_t mymap = -1;
+    
+       uint32_t mymap = -1;
     // If cuts were not configured, then produce a map with all 1's and publish it for all associations
     if (fPrefilterCutBit < 0 || fPrefilterMask == 0) {
       for (int i = 0; i < assocs.size(); ++i) {
@@ -1098,13 +1098,13 @@ struct AnalysisPrefilterSelection {
       }
     }
   }
-
+ 
   void processDummy(MyEvents&)
   {
     // do nothing
   }
 
-  PROCESS_SWITCH(AnalysisPrefilterSelection, processBarrelSkimmed, "Run Prefilter selection on reduced tracks", false);
+  PROCESS_SWITCH(AnalysisPrefilterSelection, processBarrelSkimmed, "Run Prefilter selection on reduced tracks", false);  
   PROCESS_SWITCH(AnalysisPrefilterSelection, processDummy, "Do nothing", false);
 };
 
@@ -2799,7 +2799,7 @@ struct AnalysisDileptonTrack {
   OutputObj<THashList> fOutputList{"output"};
 
   Configurable<string> fConfigTrackCuts{"cfgTrackCuts", "kaonPID", "Comma separated list of cuts for the track to be correlated with the dileptons"};
-  Configurable<float> fConfigDileptonSign{"cfgDileptonSign", 0, "The sign of the dilepton used in analysis, lepton1_sign * lepton2_sign"};
+  Configurable<int> fConfigDileptonSign{"cfgDileptonSign", 0, "The sign of the dilepton used in analysis, lepton1_sign * lepton2_sign"};
   Configurable<float> fConfigDileptonLowMass{"cfgDileptonLowMass", 2.8, "Low mass cut for the dileptons used in analysis"};
   Configurable<float> fConfigDileptonHighMass{"cfgDileptonHighMass", 3.2, "High mass cut for the dileptons used in analysis"};
   Configurable<float> fConfigDileptonpTCut{"cfgDileptonpTCut", 0.0, "pT cut for dileptons used in the triplet vertexing"};
@@ -2830,7 +2830,10 @@ struct AnalysisDileptonTrack {
 
   // TODO: The filter expressions seem to always use the default value of configurables, not the values from the actual configuration file
   Filter eventFilter = aod::dqanalysisflags::isEventSelected > static_cast<uint8_t>(0);
-  Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && aod::reducedpair::sign == 0 && aod::reducedpair::lxy> fConfigDileptonLxyCut;
+  // modified by Yuanjing, keep like sign or unlike sign based on fConfigDileptonSign 
+  // Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && aod::reducedpair::sign == 0 && aod::reducedpair::lxy> fConfigDileptonLxyCut;
+  Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && nabs(aod::reducedpair::sign) == fConfigDileptonSign && aod::reducedpair::lxy> fConfigDileptonLxyCut;
+
   Filter filterBarrel = aod::dqanalysisflags::isBarrelSelected > static_cast<uint32_t>(0);
   Filter filterMuon = aod::dqanalysisflags::isMuonSelected > static_cast<uint32_t>(0);
 
@@ -2846,14 +2849,18 @@ struct AnalysisDileptonTrack {
   void init(o2::framework::InitContext& context)
   {
     bool isBarrel = context.mOptions.get<bool>("processBarrelSkimmed");
-    bool isBarrelME = context.mOptions.get<bool>("processBarrelMixedEvent");
+    // add by Yuanjing
+    bool isBarrelFemto = context.mOptions.get<bool>("processJpsiHadronFemto");
+    // modified by Yuanjing
+    bool isBarrelME = context.mOptions.get<bool>("processBarrelMixedEvent") || context.mOptions.get<bool>("processBarrelMEFemto");
     bool isBarrelAsymmetric = context.mOptions.get<bool>("processDstarToD0Pi");
     bool isMuon = context.mOptions.get<bool>("processMuonSkimmed");
     bool isMuonME = context.mOptions.get<bool>("processMuonMixedEvent");
 
     // If the dummy process is enabled, skip the entire init
     if (context.mOptions.get<bool>("processDummy")) {
-      if (isBarrel || isBarrelME || isBarrelAsymmetric || isMuon || isMuonME) {
+      // femto add by Yuanjing
+      if (isBarrel || isBarrelFemto || isBarrelME || isBarrelAsymmetric || isMuon || isMuonME) {
         LOG(fatal) << "If processDummy is enabled, no other process functions should be enabled! Or switch off the processDummy!";
       }
       return;
@@ -2871,12 +2878,14 @@ struct AnalysisDileptonTrack {
 
     // For each track/muon selection used to produce dileptons, create a separate histogram directory using the
     // name of the track/muon cut.
-    if (isBarrel || isMuon || isBarrelAsymmetric) {
+    // femto add by Yuanjing
+    if (isBarrel || isBarrelFemto || isMuon || isBarrelAsymmetric) {
       // Get the list of single track and muon cuts computed in the dedicated tasks upstream
       // We need this to know the order in which they were computed, and also to make sure that in this task we do not ask
       //   for cuts which were not computed (in which case this will trigger a fatal)
       string cfgTrackSelection_TrackCuts;
-      if (isBarrel || isBarrelAsymmetric) {
+      // femto add by Yuanjing
+      if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
         getTaskOptionValue<string>(context, "analysis-track-selection", "cfgTrackCuts", cfgTrackSelection_TrackCuts, false);
       } else {
         getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCuts", cfgTrackSelection_TrackCuts, false);
@@ -2887,7 +2896,8 @@ struct AnalysisDileptonTrack {
         cfgTrackSelection_objArrayTrackCuts = TString(cfgTrackSelection_TrackCuts).Tokenize(",");
       }
       // get also the list of cuts specified via the JSON parameters
-      if (isBarrel || isBarrelAsymmetric) {
+      // femto add by Yuanjing
+      if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
         getTaskOptionValue<string>(context, "analysis-track-selection", "cfgBarrelTrackCutsJSON", cfgTrackSelection_TrackCuts, false);
       } else {
         getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCutsJSON", cfgTrackSelection_TrackCuts, false);
@@ -2937,7 +2947,8 @@ struct AnalysisDileptonTrack {
       string cfgPairing_TrackCuts;
       string cfgPairing_PairCuts;
       string cfgPairing_CommonTrackCuts;
-      if (isBarrel) {
+      // add by Yuanjing
+      if (isBarrel || isBarrelFemto ) {
         getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgTrackCuts", cfgPairing_TrackCuts, false);
         getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgPairCuts", cfgPairing_PairCuts, false);
       } else if (isMuon) {
@@ -3223,7 +3234,8 @@ struct AnalysisDileptonTrack {
       //   continue;
       // }
       // modified by Yuanjing
-      if ((dilepton.sign()==0 && fConfigDileptonSign.value>0) || (dilepton.sign()!=0 && fConfigDileptonSign.value<0)) continue;
+      if ((dilepton.sign()==0 && fConfigDileptonSign!=0) || (dilepton.sign()!=0 && fConfigDileptonSign==0)) 
+        continue;
 
       VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
 
@@ -3423,6 +3435,68 @@ struct AnalysisDileptonTrack {
     } // end event loop
   }
 
+  // add by Yuanjing
+  void processBarrelMEFemto(soa::Filtered<MyEventsHashSelected>& events,
+                               soa::Filtered<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> const& assocs,
+                               MyBarrelTracksWithCov const&, soa::Filtered<MyDielectronCandidates> const& dileptons)
+  {
+    if (events.size() == 0) {
+      return;
+    }
+    events.bindExternalIndices(&dileptons);
+    events.bindExternalIndices(&assocs);
+
+    // loop over two event comibnations
+    for (auto& [event1, event2] : selfCombinations(fHashBin, fConfigMixingDepth.value, -1, events, events)) {
+      // fill event quantities
+      VarManager::ResetValues(0, VarManager::kNVars);
+      VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
+
+      // get the dilepton slice for event1
+      auto evDileptons = dileptons.sliceBy(dielectronsPerCollision, event1.globalIndex());
+      evDileptons.bindExternalIndices(&events);
+
+      // get the track associations slice for event2
+      auto evAssocs = assocs.sliceBy(trackAssocsPerCollision, event2.globalIndex());
+      evAssocs.bindExternalIndices(&events);
+
+      // loop over associations
+      for (auto& assoc : evAssocs) {
+
+        // check that this track fulfills at least one of the specified cuts
+        uint32_t trackSelection = (assoc.isBarrelSelected_raw() & fTrackCutBitMap);
+        if (!trackSelection) {
+          continue;
+        }
+
+        // get the track from this association
+        auto track = assoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+
+        // loop over dileptons
+        for (auto dilepton : evDileptons) {
+          if ((dilepton.sign()==0 && fConfigDileptonSign!=0) || (dilepton.sign()!=0 && fConfigDileptonSign==0))
+             continue;
+
+          // compute dilepton - track quantities
+          double hadronmass = 0.938;
+          VarManager::FillDileptonHadronFemto(dilepton, track, VarManager::fgValues, hadronmass);
+
+          // loop over dilepton leg cuts and track cuts and fill histograms separately for each combination
+          for (int icut = 0; icut < fNCuts; icut++) {
+            if (!dilepton.filterMap_bit(icut)) {
+              continue;
+            }
+            for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
+              if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
+                fHistMan->FillHistClass(Form("DileptonTrackME_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
+              }
+            }
+          }
+        } // end for (dileptons)
+      } // end for (assocs)
+    } // end event loop
+  }
+
   void processMuonMixedEvent(soa::Filtered<MyEventsHashSelected>& events,
                              soa::Filtered<soa::Join<aod::ReducedMuonsAssoc, aod::MuonTrackCuts>> const& assocs,
                              MyMuonTracksWithCov const&, soa::Filtered<MyDimuonCandidates> const& dileptons)
@@ -3478,6 +3552,7 @@ struct AnalysisDileptonTrack {
   PROCESS_SWITCH(AnalysisDileptonTrack, processDstarToD0Pi, "Run barrel pairing of D0 daughters with pion candidate, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMuonSkimmed, "Run muon dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelMixedEvent, "Run barrel dilepton-hadron mixed event pairing", false);
+  PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelMEFemto, "Run barrel dilepton-hadron mixed event pairing for femto", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMuonMixedEvent, "Run muon dilepton-hadron mixed event pairing", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processDummy, "Dummy function", false);
 };
