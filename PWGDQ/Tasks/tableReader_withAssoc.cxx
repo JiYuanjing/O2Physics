@@ -2851,8 +2851,9 @@ struct AnalysisDileptonTrack {
     bool isBarrel = context.mOptions.get<bool>("processBarrelSkimmed");
     // add by Yuanjing
     bool isBarrelFemto = context.mOptions.get<bool>("processJpsiHadronFemto");
-    // modified by Yuanjing
-    bool isBarrelME = context.mOptions.get<bool>("processBarrelMixedEvent") || context.mOptions.get<bool>("processBarrelMEFemto");
+    bool isBarrelME = context.mOptions.get<bool>("processBarrelMixedEvent");
+    // add by Yuanjing
+    bool isBarrelMEFemto = context.mOptions.get<bool>("processBarrelMEFemto");
     bool isBarrelAsymmetric = context.mOptions.get<bool>("processDstarToD0Pi");
     bool isMuon = context.mOptions.get<bool>("processMuonSkimmed");
     bool isMuonME = context.mOptions.get<bool>("processMuonMixedEvent");
@@ -2860,7 +2861,7 @@ struct AnalysisDileptonTrack {
     // If the dummy process is enabled, skip the entire init
     if (context.mOptions.get<bool>("processDummy")) {
       // femto add by Yuanjing
-      if (isBarrel || isBarrelFemto || isBarrelME || isBarrelAsymmetric || isMuon || isMuonME) {
+      if (isBarrel || isBarrelFemto || isBarrelME || isBarrelMEFemto || isBarrelAsymmetric || isMuon || isMuonME) {
         LOG(fatal) << "If processDummy is enabled, no other process functions should be enabled! Or switch off the processDummy!";
       }
       return;
@@ -3035,6 +3036,10 @@ struct AnalysisDileptonTrack {
 
           if (isBarrelME || isMuonME) {
             DefineHistograms(fHistMan, Form("DileptonTrackME_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), "mixedevent"); // define ME histograms
+          }
+
+          if (isBarrelMEFemto) {
+            DefineHistograms(fHistMan, Form("DileptonTrackMEFemto_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), "mixedevent-femto"); // define ME histograms
           }
         } // end loop over track cuts to be combined with dileptons / di-tracks
       } // end loop over pair leg track cuts
@@ -3488,7 +3493,7 @@ struct AnalysisDileptonTrack {
             }
             for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
               if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
-                fHistMan->FillHistClass(Form("DileptonTrackME_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
+                fHistMan->FillHistClass(Form("DileptonTrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
               }
             }
           }
