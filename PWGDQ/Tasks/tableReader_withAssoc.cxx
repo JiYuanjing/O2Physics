@@ -2880,13 +2880,13 @@ struct AnalysisDileptonTrack {
     // For each track/muon selection used to produce dileptons, create a separate histogram directory using the
     // name of the track/muon cut.
     // femto add by Yuanjing
-    if (isBarrel || isBarrelFemto || isMuon || isBarrelAsymmetric) {
+    if (isBarrel || isBarrelFemto || isMuon || isBarrelAsymmetric || isBarrelME || isBarrelFemto) {
       // Get the list of single track and muon cuts computed in the dedicated tasks upstream
       // We need this to know the order in which they were computed, and also to make sure that in this task we do not ask
       //   for cuts which were not computed (in which case this will trigger a fatal)
       string cfgTrackSelection_TrackCuts;
       // femto add by Yuanjing
-      if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
+      if (isBarrel || isBarrelFemto || isBarrelAsymmetric || isBarrelME || isBarrelMEFemto) {
         getTaskOptionValue<string>(context, "analysis-track-selection", "cfgTrackCuts", cfgTrackSelection_TrackCuts, false);
       } else {
         getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCuts", cfgTrackSelection_TrackCuts, false);
@@ -2898,7 +2898,7 @@ struct AnalysisDileptonTrack {
       }
       // get also the list of cuts specified via the JSON parameters
       // femto add by Yuanjing
-      if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
+      if (isBarrel || isBarrelFemto || isBarrelAsymmetric || isBarrelME || isBarrelMEFemto) {
         getTaskOptionValue<string>(context, "analysis-track-selection", "cfgBarrelTrackCutsJSON", cfgTrackSelection_TrackCuts, false);
       } else {
         getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCutsJSON", cfgTrackSelection_TrackCuts, false);
@@ -3456,6 +3456,9 @@ struct AnalysisDileptonTrack {
       // fill event quantities
       VarManager::ResetValues(0, VarManager::kNVars);
       VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
+      // Yuanjing add, store hadron info
+      // VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
+      // VarManager::FillEvent<gkEventFillMap>(event2, fValuesHadron);
 
       // get the dilepton slice for event1
       auto evDileptons = dileptons.sliceBy(dielectronsPerCollision, event1.globalIndex());
@@ -3482,6 +3485,8 @@ struct AnalysisDileptonTrack {
           if ((dilepton.sign()==0 && fConfigDileptonSign!=0) || (dilepton.sign()!=0 && fConfigDileptonSign==0))
              continue;
 
+          // Yuanjing added
+          // VarManager::FillTrack<fgDileptonFillMap>(dilepton, VarManager::fgValues);
           // compute dilepton - track quantities
           double hadronmass = 0.938;
           VarManager::FillDileptonHadronFemto(dilepton, track, VarManager::fgValues, hadronmass);
@@ -3491,6 +3496,7 @@ struct AnalysisDileptonTrack {
             if (!dilepton.filterMap_bit(icut)) {
               continue;
             }
+            // fHistMan->FillHistClass(Form("DileptonsSelected_%s", fTrackCutNames[icut].Data()), VarManager::fgValues);
             for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
               if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
                 fHistMan->FillHistClass(Form("DileptonTrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
