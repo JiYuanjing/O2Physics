@@ -64,6 +64,8 @@ namespace o2::aod
 {
 namespace dqanalysisflags
 {
+//Yuanjing added for Femto study
+DECLARE_SOA_COLUMN(MixingHash, mixingHash, int);                                     //! Hash used in event mixing
 DECLARE_SOA_BITMAP_COLUMN(IsEventSelected, isEventSelected, 32);                     //! Event decision
 DECLARE_SOA_BITMAP_COLUMN(IsBarrelSelected, isBarrelSelected, 32);                   //! Barrel track decisions
 DECLARE_SOA_COLUMN(BarrelAmbiguityInBunch, barrelAmbiguityInBunch, int8_t);          //! Barrel track in-bunch ambiguity
@@ -99,6 +101,8 @@ DECLARE_SOA_COLUMN(Corrassoc, corrassoc, bool);
 } // namespace dqanalysisflags
 
 DECLARE_SOA_TABLE(EventCuts, "AOD", "DQANAEVCUTS", dqanalysisflags::IsEventSelected);                                                            //!  joinable to ReducedEvents
+//Yuanjing added
+DECLARE_SOA_TABLE(MixingHashes, "AOD", "DQANAMIXHASHA", dqanalysisflags::MixingHash);                                                             //!  joinable to ReducedEvents
 DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "DQANATRKCUTS", dqanalysisflags::IsBarrelSelected);                                                    //!  joinable to ReducedTracksAssoc
 DECLARE_SOA_TABLE(BarrelAmbiguities, "AOD", "DQBARRELAMB", dqanalysisflags::BarrelAmbiguityInBunch, dqanalysisflags::BarrelAmbiguityOutOfBunch); //!  joinable to ReducedBarrelTracks
 DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "DQANAMUONCUTS", dqanalysisflags::IsMuonSelected);                                                       //!  joinable to ReducedMuonsAssoc
@@ -134,6 +138,8 @@ using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::R
 using MyMuonTracksWithCov = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::ReducedMuonsCov, aod::ReducedMuonsLabels>;
 using MyMuonTracksWithCovWithAmbiguities = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::ReducedMuonsCov, aod::MuonAmbiguities, aod::ReducedMuonsLabels>;
 // using MyMuonTracksSelectedWithColl = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::ReducedMuonsInfo, aod::MuonTrackCuts>;
+// Yuanjing added for Femto
+using MyEventsHashSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventCuts, aod::ReducedMCEventLabels, aod::MixingHashes>;
 
 // bit maps used for the Fill functions of the VarManager
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
@@ -164,8 +170,12 @@ void PrintBitMap(TMap map, int nbits)
 // Analysis task that produces event decisions and the Hash table used in event mixing
 struct AnalysisEventSelection {
   Produces<aod::EventCuts> eventSel;
+  //Yuanjing added for femto
+  Produces<aod::MixingHashes> hash;
   OutputObj<THashList> fOutputList{"output"};
 
+  //Yuanjing added for Femto
+  Configurable<string> fConfigMixingVariables{"cfgMixingVars", "", "Mixing configs separated by a comma, default no mixing"};
   Configurable<string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
   Configurable<string> fConfigEventCutsJSON{"cfgEventCutsJSON", "", "Additional event cuts specified in JSON format"};
   Configurable<bool> fConfigQA{"cfgQA", false, "If true, fill QA histograms"};
@@ -181,6 +191,8 @@ struct AnalysisEventSelection {
   Configurable<int64_t> fConfigNoLaterThan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
 
   HistogramManager* fHistMan = nullptr;
+  //add by Yuanjing
+  MixingHandler* fMixHandler = nullptr;
   AnalysisCompositeCut* fEventCut;
 
   Service<o2::ccdb::BasicCCDBManager> fCCDB;
@@ -231,6 +243,17 @@ struct AnalysisEventSelection {
       fOutputList.setObject(fHistMan->GetMainHistogramList());
     }
 
+    // Yuanjing added for Femto
+    TString mixVarsString = fConfigMixingVariables.value;
+    std::unique_ptr<TObjArray> objArray(mixVarsString.Tokenize(","));
+    if (objArray->GetEntries() > 0) {
+      fMixHandler = new MixingHandler("mixingHandler", "mixing handler");
+      fMixHandler->Init();
+      for (int iVar = 0; iVar < objArray->GetEntries(); ++iVar) {
+        dqmixing::SetUpMixing(fMixHandler, objArray->At(iVar)->GetName());
+      }
+    }
+
     fCurrentRun = -1;
     fCCDB->setURL(fConfigCcdbUrl.value);
     fCCDB->setCaching(true);
@@ -278,6 +301,13 @@ struct AnalysisEventSelection {
       } else {
         auto& evIndices = fBCCollMap[event.globalBC()];
         evIndices.push_back(event.globalIndex());
+      }
+
+      // Yuanjing added for femto
+      // create the mixing hash and publish it into the hash table
+      if (fMixHandler != nullptr) {
+        int hh = fMixHandler->FindEventCategory(VarManager::fgValues);
+        hash(hh);
       }
     }
 
@@ -3218,6 +3248,7 @@ struct AnalysisDileptonTrack {
 
   Configurable<std::string> fConfigHistogramSubgroups{"cfgDileptonTrackHistogramsSubgroups", "invmass,vertexing", "Comma separated list of dilepton-track histogram subgroups"};
   Configurable<std::string> fConfigAddJSONHistograms{"cfgAddJSONHistograms", "", "Histograms in JSON format"};
+  Configurable<int> fConfigMixingDepth{"cfgMixingDepth", 5, "Event mixing pool depth"};
 
   Configurable<bool> fConfigUseRemoteField{"cfgUseRemoteField", false, "Chose whether to fetch the magnetic field from ccdb or set it manually"};
   Configurable<std::string> fConfigGRPmagPath{"cfgGrpmagPath", "GLO/Config/GRPMagField", "CCDB path of the GRPMagField object"};
@@ -3262,6 +3293,9 @@ struct AnalysisDileptonTrack {
   float* fValuesHadron;
   HistogramManager* fHistMan;
 
+  //Yuanjing added for femto
+  NoBinningPolicy<aod::dqanalysisflags::MixingHash> fHashBin;
+
   std::vector<MCSignal*> fRecMCSignals;
   std::vector<MCSignal*> fGenMCSignals;
 
@@ -3269,6 +3303,7 @@ struct AnalysisDileptonTrack {
   {
     bool isBarrel = context.mOptions.get<bool>("processBarrelSkimmed");
     bool isBarrelFemto = context.mOptions.get<bool>("processJpsiHadronFemto");
+    bool isBarrelME = context.mOptions.get<bool>("processBarrelMEFemto");
     bool isBarrelAsymmetric = context.mOptions.get<bool>("processDstarToD0Pi");
     bool isMuon = context.mOptions.get<bool>("processMuonSkimmed");
     bool isMCGen = context.mOptions.get<bool>("processMCGen") || context.mOptions.get<bool>("processMCGenWithEventSelection");
@@ -3351,7 +3386,8 @@ struct AnalysisDileptonTrack {
     // We need this to know the order in which they were computed, and also to make sure that in this task we do not ask
     //   for cuts which were not computed (in which case this will trigger a fatal)
     string cfgTrackSelection_TrackCuts;
-    if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
+    //modified by Yuanjing
+    if (isBarrel || isBarrelFemto || isBarrelME || isBarrelAsymmetric) {
       getTaskOptionValue<string>(context, "analysis-track-selection", "cfgTrackCuts", cfgTrackSelection_TrackCuts, false);
     } else {
       getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCuts", cfgTrackSelection_TrackCuts, false);
@@ -3361,7 +3397,8 @@ struct AnalysisDileptonTrack {
       cfgTrackSelection_objArrayTrackCuts = TString(cfgTrackSelection_TrackCuts).Tokenize(",");
     }
     // get also the list of cuts specified via the JSON parameters
-    if (isBarrel || isBarrelFemto || isBarrelAsymmetric) {
+    // Modified by Yuanjing
+    if (isBarrel || isBarrelFemto || isBarrelME || isBarrelAsymmetric) {
       getTaskOptionValue<string>(context, "analysis-track-selection", "cfgBarrelTrackCutsJSON", cfgTrackSelection_TrackCuts, false);
     } else {
       getTaskOptionValue<string>(context, "analysis-muon-selection", "cfgMuonCutsJSON", cfgTrackSelection_TrackCuts, false);
@@ -3413,7 +3450,7 @@ struct AnalysisDileptonTrack {
     string cfgPairing_TrackCuts;
     string cfgPairing_PairCuts;
     string cfgPairing_CommonTrackCuts;
-    if (isBarrel || isBarrelFemto) {
+    if (isBarrel || isBarrelFemto || isBarrelME) {
       getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgTrackCuts", cfgPairing_TrackCuts, false);
       getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgPairCuts", cfgPairing_PairCuts, false);
     } else if (isMuon) {
@@ -3453,7 +3490,7 @@ struct AnalysisDileptonTrack {
     std::unique_ptr<TObjArray> cfgPairing_objArrayTrackCuts(TString(cfgPairing_TrackCuts).Tokenize(","));
 
     // loop over single lepton cuts
-    if (isBarrel || isBarrelFemto || isBarrelAsymmetric || isMuon) {
+    if (isBarrel || isBarrelFemto || isBarrelME || isBarrelAsymmetric || isMuon) {
       for (int icut = 0; icut < fNCuts; ++icut) {
 
         // here we check that this cut is one of those used for building the dileptons
@@ -3471,7 +3508,7 @@ struct AnalysisDileptonTrack {
           if (!(fTrackCutBitMap & (static_cast<uint32_t>(1) << iCutTrack))) {
             continue;
           }
-
+          
           DefineHistograms(fHistMan, Form("DileptonTrack_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), fConfigHistogramSubgroups.value.data());
           for (auto& sig : fRecMCSignals) {
             DefineHistograms(fHistMan, Form("DileptonTrackMCMatched_%s_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data(), sig->GetName()), fConfigHistogramSubgroups.value.data());
@@ -3508,6 +3545,11 @@ struct AnalysisDileptonTrack {
                 }
               }
             }
+          }
+
+          //Yuanjing added for femto
+          if (isBarrelME) {
+            DefineHistograms(fHistMan, Form("DileptonTrackMEFemto_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), "mixedevent-femto"); // define ME histograms
           }
         } // end loop over track cuts to be combined with dileptons / di-tracks
       } // end loop over pair leg track cuts
@@ -3924,6 +3966,98 @@ struct AnalysisDileptonTrack {
     }
   }
 
+  //Yuanjing added for femto
+  // no MC info currently, will add later
+  void processBarrelMEFemto(soa::Filtered<MyEventsHashSelected>& events,
+                            soa::Filtered<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> const& assocs,
+                            MyBarrelTracksWithCov const& tracks, soa::Filtered<MyDielectronCandidates> const& dileptons,
+                            ReducedMCEvents const& mcEvents, ReducedMCTracks const& mcTracks)
+  {
+    if (events.size() == 0) {
+      return;
+    }
+    events.bindExternalIndices(&dileptons);
+    events.bindExternalIndices(&assocs);
+    events.bindExternalIndices(&tracks);
+    events.bindExternalIndices(&mcEvents);
+    events.bindExternalIndices(&mcTracks);
+
+    // loop over two event comibnations
+    for (auto& [event1, event2] : selfCombinations(fHashBin, fConfigMixingDepth.value, -1, events, events)) {
+      // fill event quantities
+      VarManager::ResetValues(0, VarManager::kNVars);
+      VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
+      VarManager::FillEvent<VarManager::ObjTypes::ReducedEventMC>(event.reducedMCevent(), VarManager::fgValues);
+      VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
+      VarManager::FillEvent<TEventFillMap>(event2, fValuesHadron);
+      VarManager::FillEvent<VarManager::ObjTypes::ReducedEventMC>(event2.reducedMCevent(), fValuesHadron);
+
+      uint32_t mcDecision = static_cast<uint32_t>(0);
+      size_t isig = 0;
+
+      // get the dilepton slice for event1
+      auto evDileptons = dileptons.sliceBy(dielectronsPerCollision, event1.globalIndex());
+      evDileptons.bindExternalIndices(&events);
+
+      // get the track associations slice for event2
+      auto evAssocs = assocs.sliceBy(trackAssocsPerCollision, event2.globalIndex());
+      evAssocs.bindExternalIndices(&events);
+
+      // loop over associations
+      for (auto& assoc : evAssocs) {
+
+        // check that this track fulfills at least one of the specified cuts
+        uint32_t trackSelection = (assoc.isBarrelSelected_raw() & fTrackCutBitMap);
+        if (!trackSelection) {
+          continue;
+        }
+
+        // get the track from this association
+        auto track = assoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+
+        auto trackMC = track.reducedMCTrack();
+
+        // loop over dileptons
+        for (auto dilepton : evDileptons) {
+          // get full track info of tracks based on the index
+          auto lepton1 = tracks.rawIteratorAt(dilepton.index0Id());
+          auto lepton2 = tracks.rawIteratorAt(dilepton.index1Id());
+          auto lepton1MC = lepton1.reducedMCTrack();
+          auto lepton2MC = lepton2.reducedMCTrack();
+
+          // Actually not necessary since dileptonFilter has removed like sign 
+          if ((dilepton.sign()!=0))
+             continue;
+
+          // Yuanjing added
+          mcDecision = 0;
+          isig = 0;
+          for (auto sig = fRecMCSignals.begin(); sig != fRecMCSignals.end(); sig++, isig++) {
+            if ((*sig)->CheckSignal(true, lepton1MC, lepton2MC, trackMC)) {
+              mcDecision |= (static_cast<uint32_t>(1) << isig);
+            }
+          }
+          // VarManager::FillTrack<fgDileptonFillMap>(dilepton, VarManager::fgValues);
+          // compute dilepton - track quantities
+          double hadronmass = 0.938;
+          VarManager::FillDileptonHadronFemto(dilepton, track, VarManager::fgValues, hadronmass);
+             
+          // loop over dilepton leg cuts and track cuts and fill histograms separately for each combination
+          for (int icut = 0; icut < fNCuts; icut++) {
+            if (!dilepton.filterMap_bit(icut)) {
+              continue;
+            }
+            for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
+              if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
+                fHistMan->FillHistClass(Form("DileptonTrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
+              }
+            }
+          }
+        } // end for (dileptons)
+      } // end for (assocs)
+    } // end event loop
+  }
+
   Preslice<aod::ReducedMuonsAssoc> muonAssocsPerCollision = aod::reducedtrack_association::reducedeventId;
   Preslice<MyDimuonCandidates> dimuonsPerCollision = aod::reducedpair::reducedeventId;
 
@@ -4066,6 +4200,7 @@ struct AnalysisDileptonTrack {
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelSkimmed, "Run barrel dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processJpsiHadronFemto, "Run barrel dilepton-track pairing for femtostudy, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processDstarToD0Pi, "Run barrel pairing of D0 daughters with pion candidate, using skimmed data", false);
+  PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelMEFemto, "Run barrel dilepton-hadron mixed event pairingfor femto", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMuonSkimmed, "Run muon dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMCGen, "Loop over MC particle stack and fill generator level histograms", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMCGenWithEventSelection, "Loop over MC particle stack and fill generator level histograms", false);

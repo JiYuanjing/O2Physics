@@ -2808,6 +2808,7 @@ struct AnalysisDileptonTrack {
 
   Configurable<std::string> fConfigHistogramSubgroups{"cfgDileptonTrackHistogramsSubgroups", "invmass,vertexing", "Comma separated list of dilepton-track histogram subgroups"};
   Configurable<std::string> fConfigAddJSONHistograms{"cfgAddJSONHistograms", "", "Histograms in JSON format"};
+  // add by Yuanjing for femto
   Configurable<int> fConfigMixingDepth{"cfgMixingDepth", 5, "Event mixing pool depth"};
 
   Configurable<bool> fConfigUseRemoteField{"cfgUseRemoteField", false, "Chose whether to fetch the magnetic field from ccdb or set it manually"};
@@ -2833,6 +2834,7 @@ struct AnalysisDileptonTrack {
   // modified by Yuanjing, keep like sign or unlike sign based on fConfigDileptonSign 
   // Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && aod::reducedpair::sign == 0 && aod::reducedpair::lxy> fConfigDileptonLxyCut;
   Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && nabs(aod::reducedpair::sign) == fConfigDileptonSign && aod::reducedpair::lxy> fConfigDileptonLxyCut;
+  // Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonpTCut&& aod::reducedpair::mass > fConfigDileptonLowMass  && aod::reducedpair::mass<fConfigDileptonHighMass && aod::reducedpair::lxy> fConfigDileptonLxyCut;
 
   Filter filterBarrel = aod::dqanalysisflags::isBarrelSelected > static_cast<uint32_t>(0);
   Filter filterMuon = aod::dqanalysisflags::isMuonSelected > static_cast<uint32_t>(0);
@@ -2949,7 +2951,7 @@ struct AnalysisDileptonTrack {
       string cfgPairing_PairCuts;
       string cfgPairing_CommonTrackCuts;
       // add by Yuanjing
-      if (isBarrel || isBarrelFemto ) {
+      if (isBarrel || isBarrelFemto || isBarrelMEFemto || isBarrelME) {
         getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgTrackCuts", cfgPairing_TrackCuts, false);
         getTaskOptionValue<string>(context, "analysis-same-event-pairing", "cfgPairCuts", cfgPairing_PairCuts, false);
       } else if (isMuon) {
@@ -3456,9 +3458,6 @@ struct AnalysisDileptonTrack {
       // fill event quantities
       VarManager::ResetValues(0, VarManager::kNVars);
       VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
-      // Yuanjing add, store hadron info
-      // VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
-      // VarManager::FillEvent<gkEventFillMap>(event2, fValuesHadron);
 
       // get the dilepton slice for event1
       auto evDileptons = dileptons.sliceBy(dielectronsPerCollision, event1.globalIndex());
@@ -3496,7 +3495,6 @@ struct AnalysisDileptonTrack {
             if (!dilepton.filterMap_bit(icut)) {
               continue;
             }
-            // fHistMan->FillHistClass(Form("DileptonsSelected_%s", fTrackCutNames[icut].Data()), VarManager::fgValues);
             for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
               if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
                 fHistMan->FillHistClass(Form("DileptonTrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);

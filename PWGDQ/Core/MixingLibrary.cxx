@@ -68,6 +68,10 @@ void o2::aod::dqmixing::SetUpMixing(MixingHandler* mh, const char* mixingVarible
     std::vector<float> fMultFT0CLimsHashing = {0.0f, 50.0f, 100.0f, 200.0f, 400.0f, 600.0f, 800.0f, 900.0f, 1300.0f, 2000.0f};
     mh->AddMixingVariable(VarManager::kMultFT0C, fMultFT0CLimsHashing.size(), fMultFT0CLimsHashing);
   }
+  if (!nameStr.compare("Mult1")) {
+    std::vector<float> fMultLimsHashing = {0.0f, 10.0f, 20.0f, 40.0f, 60.0f, 80.0f, 100.0f, 120.0f, 250.0f};
+    mh->AddMixingVariable(VarManager::kVtxNcontrib, fMultLimsHashing.size(), fMultLimsHashing);
+  }
   if (!nameStr.compare("Vtx1")) {
     std::vector<float> fZLimsHashing = {-10.0f, 0.0f, 10.0f};
     mh->AddMixingVariable(VarManager::kVtxZ, fZLimsHashing.size(), fZLimsHashing);
