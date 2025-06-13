@@ -1699,6 +1699,16 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMass", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5,5.0, VarManager::kPairMassDau);
         hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassDileptonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kDileptonP);
         hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassProtonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kP);
+        // Yuanjing add for QA
+        hm->AddHistogram(histClass, "Mass_Dilepton", "", false, 125, 0.0, 5.0, VarManager::kPairMassDau);
+        hm->AddHistogram(histClass, "Mass_Hadron", "", false, 125, 0.0, 5.0, VarManager::kMassDau);
+        hm->AddHistogram(histClass, "Delta_Mass", "", false, 125, 0.0, 5.0, VarManager::kDeltaMass);
+        hm->AddHistogram(histClass, "Mass_Dilepton_Mass_Hadron", "", false, 125, 0.0, 5.0, VarManager::kPairMassDau, 125, 0.0, 5.0, VarManager::kMassDau);
+        hm->AddHistogram(histClass, "Pt_Dilepton", "", false, 120, 0.0, 30.0, VarManager::kPairPtDau);
+        hm->AddHistogram(histClass, "Pt_Track", "", false, 120, 0.0, 30.0, VarManager::kPt);
+        hm->AddHistogram(histClass, "Pt_Dilepton_Kstar", "", false, 40, 0.0, 20.0, VarManager::kPairPtDau, 120, 0.0, 3.0, VarManager::kDileptonHadronKstar);
+        hm->AddHistogram(histClass, "Pt_Track_Kstar", "", false, 40, 0.0, 20.0, VarManager::kPt, 120, 0.0, 3.0, VarManager::kDileptonHadronKstar);
+
       }
     }
     if (subGroupStr.Contains("invmass")) {
