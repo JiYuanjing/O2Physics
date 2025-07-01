@@ -16,18 +16,18 @@
 #ifndef PWGJE_CORE_MLRESPONSEHFTAGGING_H_
 #define PWGJE_CORE_MLRESPONSEHFTAGGING_H_
 
-#include <map>
-#include <string>
-#include <vector>
-
 #include "Tools/ML/MlResponse.h"
-#include "PWGJE/Core/JetTaggingUtilities.h"
 
-#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
-#include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
-#else
 #include <onnxruntime_cxx_api.h>
-#endif
+
+#include <Framework/Logger.h>
+
+#include <onnxruntime_c_api.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 // Fill the map of available input features
 // the key is the feature's name (std::string)
@@ -112,6 +112,11 @@ class MlResponseHfTagging : public MlResponse<TypeOutputScore>
   /// @brief Method to get the input shape of the model
   /// @return A vector of input shapes
   std::vector<std::vector<int64_t>> getInputShape() const { return this->mModels[0].getInputShapes(); }
+
+  /// @brief Method to get the output shape of a model
+  /// \param imod is the index of the model
+  /// @return number of output nodes
+  int getOutputNodes(int imod = 0) const { return this->mModels[imod].getNumOutputNodes(); }
 
   /// Method to fill the inputs of jet, tracks and secondary vertices
   /// \param jet is the b-jet candidate
@@ -324,25 +329,17 @@ class MlResponseHfTagging : public MlResponse<TypeOutputScore>
 class TensorAllocator
 {
  protected:
-#if !__has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
   Ort::MemoryInfo memInfo;
-#endif
  public:
   TensorAllocator()
-#if !__has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
     : memInfo(Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault))
-#endif
   {
   }
   ~TensorAllocator() = default;
   template <typename T>
   Ort::Value createTensor(std::vector<T>& input, std::vector<int64_t>& inputShape)
   {
-#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
-    return Ort::Experimental::Value::CreateTensor<T>(input.data(), input.size(), inputShape);
-#else
     return Ort::Value::CreateTensor<T>(memInfo, input.data(), input.size(), inputShape.data(), inputShape.size());
-#endif
   }
 };
 

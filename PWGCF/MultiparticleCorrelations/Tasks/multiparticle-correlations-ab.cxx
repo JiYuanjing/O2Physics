@@ -73,21 +73,27 @@ using Collision_QA = CollisionRec; // if I would need additional tables for QA, 
 using TracksRec_QA = TracksRec;    // if I would need additional tables for QA, just join 'em here with TracksRec
 
 // *) ROOT:
-#include <TList.h>
-#include <TSystem.h>
-#include <TFile.h>
-#include <TH1D.h>
-#include <TProfile2D.h>
-#include <TGrid.h>
-#include <Riostream.h>
-#include <TRandom3.h>
 #include <TComplex.h>
-#include <TStopwatch.h>
+#include <TDatabasePDG.h>
 #include <TExMap.h>
 #include <TF1.h>
 #include <TF3.h>
-#include <TObjString.h>
+#include <TFile.h>
+#include <TFormula.h>
+#include <TGrid.h>
+#include <TH1D.h>
 #include <THnSparse.h>
+#include <TList.h>
+#include <TObjString.h>
+#include <TProfile2D.h>
+#include <TProfile3D.h>
+#include <TRandom3.h>
+#include <TStopwatch.h>
+#include <TSystem.h>
+
+#include <Riostream.h>
+
+#include <complex>
 using namespace std;
 
 // *) Enums:
@@ -157,13 +163,13 @@ struct MultiparticleCorrelationsAB // this name is used in lower-case format to 
 
     // *) Book all remaining objects;
     BookAndNestAllLists();
-    BookResultsHistograms(); // yes, this one has to be booked first, because it defines the common binning for other groups of histograms TBI 20250412 this is true only if I can use Clone()
+    BookResultsHistograms(); // yes, this one has to be booked first, because it defines the common binning for other groups of histograms, w/ or w/o clonning
     BookQAHistograms();
     BookEventHistograms();
     BookEventCutsHistograms();
     BookParticleHistograms();
-    BookParticleCutsHistograms();
-    BookQvectorHistograms();
+    BookParticleCutsHistograms(); // memStatus: 50913
+    BookQvectorHistograms();      // memStatus: 50913 (without differential q-vectors and eta separations)
     BookCorrelationsHistograms();
     BookWeightsHistograms();
     BookCentralityWeightsHistograms();
@@ -173,6 +179,10 @@ struct MultiparticleCorrelationsAB // this name is used in lower-case format to 
     BookTest0Histograms();
     BookEtaSeparationsHistograms();
     BookTheRest(); // I book everything that was not sorted (yet) in the specific functions above
+    // memStatus: 50913 (without differential q-vectors and eta separations)
+
+    // *) I can purge a few objects used for common consistent booking across different group of histograms:
+    PurgeAfterBooking();
 
     // *) Insanity checks after booking:
     InsanityChecksAfterBooking(); // pointers of all local histograms, etc., are available, so I can do insanity checks directly on all booked objects
@@ -309,6 +319,53 @@ struct MultiparticleCorrelationsAB // this name is used in lower-case format to 
     Steer<eQA>(collision, bcs, tracks);
   }
   PROCESS_SWITCH(MultiparticleCorrelationsAB, processQA, "QA processing", false);
+
+  // -------------------------------------------
+
+  // L) Process extra Monte Carlo info the from table HepMCHeavyIons:
+  //    Remark 1: Under testing, merge eventually this process switch with processRecSim, processRecSim_Run2, and processRecSim_Run1 above;
+  //              This switch does everything the same as processRecSim (so it works only for Run 3 at the moment), except extra info is processed from table HepMCHeavyIons with dedicated function call
+  //              ProcessHepMCHeavyIons(hepMChi). I use this dedicated function, in order not to modify call to Steer(...) by adding the fourth argument.
+  //              TBI 20250429 see if I can circumvent this with templates (i can NOT join HepMCHeavyIons and McParticles), in order to keep call to Steer(...) as simple as it is now
+  //    Remark 2: In MC LHC24g3 and LHC24e2c, for HepMCHeavyIons only impact parameter is filled;
+  //              As soon as HepMCHeavyIons is correctly filled in MC productions, merge this switch with processRecSim, processRecSim_Run2, and processRecSim_Run1 above.
+  //              Most notably, I will need hep.centrality() (centrality at generated level), and hep.sigmaInelNN()
+  void processHepMChi(CollisionRecSim const& collision, aod::BCs const& bcs, TracksRecSim const& tracks, aod::HepMCHeavyIons const& hepMChi, aod::McParticles const&, aod::McCollisions const&)
+  {
+    // Comment the weather here...
+
+    // *) Check if this collision has the corresponding MC collision:
+    if (!collision.has_mcCollision()) {
+      LOGF(warning, "\033[1;31m%s at line %d : No MC collision for this collision, skip... \033[0m", __FUNCTION__, __LINE__);
+      return;
+    }
+
+    // *) For this collision, get the corresponding mcCollision, and then profit from the fact that HepMCHeavyIons have index to mcCollision by default (no need to join with McCollisionLabels):
+    auto hep = hepMChi.iteratorAt(collision.mcCollision().globalIndex());
+
+    // *) Quick insanity check that HepMCHeavyIons and McCollisions refer to the same MC collision:
+    //    Since both of them provide getter impactParameter(), i simply check if it gives the same value in both cases:
+    if (std::abs(hep.impactParameter() - collision.mcCollision().impactParameter()) > tc.fFloatingPointPrecision) {
+      LOGF(fatal, "\033[1;31m%s at line %d : impactParameter accessed from HepMCHeavyIons and McCollisions is not the same, they do not correspond to the same MC event \033[0m", __FUNCTION__, __LINE__);
+    }
+
+    // *) Okay, extract all extra info from HepMCHeavyIons:
+    ProcessHepMCHeavyIons(hep);
+
+    // *) Call the Steer(...)
+    //    TBI 20250429 For the time being, only Run 3 call for Steer(...) is supported. When generalizing to Run 2 and Run 1 process switches, perhaps the better strategy is
+    //                 just to inject ProcessHepMCHeavyIons(hep); , and keep call to Steer(...) as it is now?
+    Steer<eRecAndSim>(collision, bcs, tracks); // TBI 20250429 remember that I have hardwired here eRecAndSim, so this now works only for Run 3
+
+  } // void processHepMChi( ... )
+
+  PROCESS_SWITCH(MultiparticleCorrelationsAB, processHepMChi, "HepMCHeavyIons processing", false);
+
+  // -------------------------------------------
+
+  // ... ctd. here with further process switches ...
+
+  // -------------------------------------------
 
 }; // struct MultiparticleCorrelationsAB
 

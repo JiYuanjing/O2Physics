@@ -18,25 +18,31 @@
 #ifndef PWGJE_CORE_JETTAGGINGUTILITIES_H_
 #define PWGJE_CORE_JETTAGGINGUTILITIES_H_
 
-#include <cmath>
-#include <limits>
-#include <numeric>
-#include <tuple>
-#include <vector>
+#include "PWGJE/Core/JetUtilities.h"
+
+#include "Common/Core/RecoDecay.h"
+
+#include <CommonConstants/PhysicsConstants.h>
+#include <Framework/Logger.h>
+
+#include <TF1.h>
+#include <TMath.h>
+
+#include <Rtypes.h>
+
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
-
-#include <TPDGCode.h>
-#include "CommonConstants/PhysicsConstants.h"
-
-#include "TF1.h"
-#include "Framework/Logger.h"
-#include "Common/Core/RecoDecay.h"
-#include "Common/Core/trackUtilities.h"
-#include "PWGJE/Core/JetUtilities.h"
+#include <utility>
+#include <vector>
 
 enum JetTaggingSpecies {
   none = 0,
@@ -211,12 +217,12 @@ int jetTrackFromHFShower(T const& jet, U const& /*tracks*/, V const& particles, 
     hasMcParticle = true;
     auto const& particle = track.template mcParticle_as<V>();
     origin = RecoDecay::getParticleOrigin(particles, particle, searchUpToQuark);
-    if (origin == 1 || origin == 2) { // 1=charm , 2=beauty
+    if (origin == RecoDecay::OriginType::Prompt || origin == RecoDecay::OriginType::NonPrompt) { // 1=charm , 2=beauty
       hftrack = track;
-      if (origin == 1) {
+      if (origin == RecoDecay::OriginType::Prompt) {
         return JetTaggingSpecies::charm;
       }
-      if (origin == 2) {
+      if (origin == RecoDecay::OriginType::NonPrompt) {
         return JetTaggingSpecies::beauty;
       }
     }
@@ -244,12 +250,12 @@ int jetParticleFromHFShower(T const& jet, U const& particles, typename U::iterat
   for (const auto& particle : jet.template tracks_as<U>()) {
     hfparticle = particle; // for init if origin is 1 or 2, the particle is not hfparticle
     origin = RecoDecay::getParticleOrigin(particles, particle, searchUpToQuark);
-    if (origin == 1 || origin == 2) { // 1=charm , 2=beauty
+    if (origin == RecoDecay::OriginType::Prompt || origin == RecoDecay::OriginType::NonPrompt) { // 1=charm , 2=beauty
       hfparticle = particle;
-      if (origin == 1) {
+      if (origin == RecoDecay::OriginType::Prompt) {
         return JetTaggingSpecies::charm;
       }
-      if (origin == 2) {
+      if (origin == RecoDecay::OriginType::NonPrompt) {
         return JetTaggingSpecies::beauty;
       }
     }
@@ -350,7 +356,7 @@ int jetOrigin(T const& jet, U const& particles, float dRMax = 0.25)
   typename U::iterator parton1;
   typename U::iterator parton2;
   for (auto const& particle : particles) {
-    if (std::abs(particle.getGenStatusCode() == 23)) {
+    if (std::abs(particle.getGenStatusCode()) == 23) {
       if (!firstPartonFound) {
         parton1 = particle;
         firstPartonFound = true;
@@ -993,11 +999,11 @@ void analyzeJetSVInfo4ML(AnalysisJet const& myJet, AnyTracks const& /*allTracks*
 
 // Looping over the track info and putting them in the input vector
 template <typename AnalysisJet, typename AnyTracks, typename SecondaryVertices>
-void analyzeJetTrackInfo4ML(AnalysisJet const& analysisJet, AnyTracks const& /*allTracks*/, SecondaryVertices const& /*allSVs*/, std::vector<BJetTrackParams>& tracksParams, float trackPtMin = 0.5)
+void analyzeJetTrackInfo4ML(AnalysisJet const& analysisJet, AnyTracks const& /*allTracks*/, SecondaryVertices const& /*allSVs*/, std::vector<BJetTrackParams>& tracksParams, float trackPtMin = 0.5, float trackDcaXYMax = 10.0, float trackDcaZMax = 10.0)
 {
   for (const auto& constituent : analysisJet.template tracks_as<AnyTracks>()) {
 
-    if (constituent.pt() < trackPtMin) {
+    if (constituent.pt() < trackPtMin || !trackAcceptanceWithDca(constituent, trackDcaXYMax, trackDcaZMax)) {
       continue;
     }
 
@@ -1026,11 +1032,11 @@ void analyzeJetTrackInfo4ML(AnalysisJet const& analysisJet, AnyTracks const& /*a
 
 // Looping over the track info and putting them in the input vector without using any SV info
 template <typename AnalysisJet, typename AnyTracks>
-void analyzeJetTrackInfo4MLnoSV(AnalysisJet const& analysisJet, AnyTracks const& /*allTracks*/, std::vector<BJetTrackParams>& tracksParams, float trackPtMin = 0.5)
+void analyzeJetTrackInfo4MLnoSV(AnalysisJet const& analysisJet, AnyTracks const& /*allTracks*/, std::vector<BJetTrackParams>& tracksParams, float trackPtMin = 0.5, float trackDcaXYMax = 10.0, float trackDcaZMax = 10.0)
 {
   for (const auto& constituent : analysisJet.template tracks_as<AnyTracks>()) {
 
-    if (constituent.pt() < trackPtMin) {
+    if (constituent.pt() < trackPtMin || !trackAcceptanceWithDca(constituent, trackDcaXYMax, trackDcaZMax)) {
       continue;
     }
 
