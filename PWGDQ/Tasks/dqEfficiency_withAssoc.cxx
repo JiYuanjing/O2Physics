@@ -3591,6 +3591,9 @@ struct AnalysisDileptonTrack {
           //Yuanjing added for femto
           if (isBarrelME) {
             DefineHistograms(fHistMan, Form("DileptonTrackMEFemto_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), "mixedevent-femto"); // define ME histograms
+            for (auto& sig : fRecMCSignals) {
+              DefineHistograms(fHistMan, Form("DileptonTrackMEFemto_MCMatched_%s_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data(), sig->GetName()), "mixedevent-femto");
+            }
           }
         } // end loop over track cuts to be combined with dileptons / di-tracks
       } // end loop over pair leg track cuts
@@ -4039,9 +4042,9 @@ struct AnalysisDileptonTrack {
       // fill event quantities
       VarManager::ResetValues(0, VarManager::kNVars);
       VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
-      VarManager::FillEvent<VarManager::ObjTypes::ReducedEventMC>(event.reducedMCevent(), VarManager::fgValues);
+      VarManager::FillEvent<VarManager::ObjTypes::ReducedEventMC>(event1.reducedMCevent(), VarManager::fgValues);
       VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
-      VarManager::FillEvent<TEventFillMap>(event2, fValuesHadron);
+      VarManager::FillEvent<gkEventFillMap>(event2, fValuesHadron);
       VarManager::FillEvent<VarManager::ObjTypes::ReducedEventMC>(event2.reducedMCevent(), fValuesHadron);
 
       uint32_t mcDecision = static_cast<uint32_t>(0);
@@ -4102,6 +4105,11 @@ struct AnalysisDileptonTrack {
             for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
               if (trackSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
                 fHistMan->FillHistClass(Form("DileptonTrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
+                for (uint32_t isig = 0; isig < fRecMCSignals.size(); isig++) {
+                  if (mcDecision & (static_cast<uint32_t>(1) << isig)) {
+                    fHistMan->FillHistClass(Form("DileptonTrackMEFemto_MCMatched_%s_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data(), fRecMCSignals[isig]->GetName()), VarManager::fgValues);
+                  }
+                }
               }
             }
           }

@@ -829,7 +829,6 @@ class VarManager : public TObject
 
     // Dilepton-hadron femto variables
     // Yuanjing add 2024.12.22
-    kDileptonHadronKstar, 
     kDileptonP,
 
 
