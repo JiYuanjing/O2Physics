@@ -1759,6 +1759,12 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "Pt_Track__Pt", "", false, 40, 0.0, 20.0, VarManager::kPt, 40, 0.0, 20.0, VarManager::kPairPt);
     }
     if (subGroupStr.Contains("vertexing")) {
+      // add by Yuanjing
+      hm->AddHistogram(histClass, "MassPtTrack0DCAxy", "", );   
+      hm->AddHistogram(histClass, "MassPtTrack1DCAxy", "", );   
+      hm->AddHistogram(histClass, "MassPtTrack0DCAz", "", );   
+      hm->AddHistogram(histClass, "MassPtTrack1DCAz", "", );   
+
       hm->AddHistogram(histClass, "UsedKF", "", false, 2, -0.5, 1.5, VarManager::kUsedKF);
       hm->AddHistogram(histClass, "KFMass", "", false, 750, 0.0, 30.0, VarManager::kKFMass);
       hm->AddHistogram(histClass, "Lz", "", false, 1000, -2.0, 2.0, VarManager::kVertexingLz);
