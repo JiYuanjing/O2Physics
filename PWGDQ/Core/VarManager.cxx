@@ -569,6 +569,15 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMCCosThetaRM] = "";
   fgVariableNames[kCandidateId] = "";
   fgVariableUnits[kCandidateId] = "";
+  // add by Yuanjing
+  fgVariableNames[kTrack0DCAxy] = "Daughter0 DCAxy";
+  fgVariableUnits[kTrack0DCAxy] = "cm";
+  fgVariableNames[kTrack1DCAxy] = "Daughter1 DCAxy";
+  fgVariableUnits[kTrack1DCAxy] = "cm";
+  fgVariableNames[kTrack0DCAz] = "Daughter0 DCAz";
+  fgVariableUnits[kTrack0DCAz] = "cm";
+  fgVariableNames[kTrack1DCAz] = "Daughter1 DCAz";
+  fgVariableUnits[kTrack1DCAz] = "cm";
   fgVariableNames[kPairType] = "Pair type";
   fgVariableUnits[kPairType] = "";
   fgVariableNames[kVertexingLxy] = "Pair Lxy";
@@ -1504,6 +1513,10 @@ void VarManager::SetDefaultVarNames()
   fgVarNamesMap["kNMCParticleVariables"] = kNMCParticleVariables;
   fgVarNamesMap["kMCMotherPdgCode"] = kMCMotherPdgCode;
   fgVarNamesMap["kCandidateId"] = kCandidateId;
+  fgVarNamesMap["kTrack0DCAxy"] = kKFTrack0DCAxy;
+  fgVarNamesMap["kTrack1DCAxy"] = kKFTrack1DCAxy;
+  fgVarNamesMap["kTrack0DCAz"] = kKFTrack0DCAz;
+  fgVarNamesMap["kTrack1DCAz"] = kKFTrack1DCAz;
   fgVarNamesMap["kPairType"] = kPairType;
   fgVarNamesMap["kVertexingLxy"] = kVertexingLxy;
   fgVarNamesMap["kVertexingLxyErr"] = kVertexingLxyErr;
