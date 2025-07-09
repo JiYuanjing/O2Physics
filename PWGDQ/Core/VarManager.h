@@ -2823,15 +2823,6 @@ void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values)
   double Ptot2 = TMath::Sqrt(v2.Px() * v2.Px() + v2.Py() * v2.Py() + v2.Pz() * v2.Pz());
   values[kDeltaPtotTracks] = Ptot1 - Ptot2;
 
-
-  if (fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
-    //DCA information
-    values[kTrack0DCAxy] = t1.dcaXY(); 
-    values[kTrack1DCAxy] = t2.dcaXY(); 
-    values[kTrack0DCAz] = t1.dcaZ(); 
-    values[kTrack1DCAz] = t2.dcaZ(); 
-  }
-
   if (t1.sign() > 0) {
     values[kPt1] = t1.pt();
     values[kEta1] = t1.eta();
@@ -3009,6 +3000,14 @@ void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values)
   }
 
   if constexpr ((pairType == kDecayToEE) && ((fillMap & TrackCov) > 0 || (fillMap & ReducedTrackBarrelCov) > 0)) {
+
+    if (fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
+      //DCA information
+      values[kTrack0DCAxy] = t1.dcaXY(); 
+      values[kTrack1DCAxy] = t2.dcaXY(); 
+      values[kTrack0DCAz] = t1.dcaZ(); 
+      values[kTrack1DCAz] = t2.dcaZ(); 
+    }
 
     if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY]) {
       // Quantities based on the barrel tables
