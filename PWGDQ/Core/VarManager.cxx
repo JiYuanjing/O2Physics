@@ -1513,10 +1513,10 @@ void VarManager::SetDefaultVarNames()
   fgVarNamesMap["kNMCParticleVariables"] = kNMCParticleVariables;
   fgVarNamesMap["kMCMotherPdgCode"] = kMCMotherPdgCode;
   fgVarNamesMap["kCandidateId"] = kCandidateId;
-  fgVarNamesMap["kTrack0DCAxy"] = kKFTrack0DCAxy;
-  fgVarNamesMap["kTrack1DCAxy"] = kKFTrack1DCAxy;
-  fgVarNamesMap["kTrack0DCAz"] = kKFTrack0DCAz;
-  fgVarNamesMap["kTrack1DCAz"] = kKFTrack1DCAz;
+  fgVarNamesMap["kTrack0DCAxy"] = kTrack0DCAxy;
+  fgVarNamesMap["kTrack1DCAxy"] = kTrack1DCAxy;
+  fgVarNamesMap["kTrack0DCAz"] = kTrack0DCAz;
+  fgVarNamesMap["kTrack1DCAz"] = kTrack1DCAz;
   fgVarNamesMap["kPairType"] = kPairType;
   fgVarNamesMap["kVertexingLxy"] = kVertexingLxy;
   fgVarNamesMap["kVertexingLxyErr"] = kVertexingLxyErr;
