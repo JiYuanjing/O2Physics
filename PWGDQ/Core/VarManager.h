@@ -3066,7 +3066,8 @@ void VarManager::FillPairCollision(const C& collision, T1 const& t1, T2 const& t
 
   if constexpr ((pairType == kDecayToEE) && ((fillMap & TrackCov) > 0 || (fillMap & ReducedTrackBarrelCov) > 0)) {
  
-    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] || fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
+    // if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] || fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
+    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] ) {
 
       auto trackPart1 = getTrackPar(t1);
       std::array<float, 2> dca1{1e10f, 1e10f};
@@ -3092,6 +3093,8 @@ void VarManager::FillPairCollision(const C& collision, T1 const& t1, T2 const& t
       values[kTrack0DCAz] = dca1Z; 
       values[kTrack1DCAz] = dca2Z; 
 
+    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY])
+    {
       values[kQuadDCAabsXY] = std::sqrt((dca1XY * dca1XY + dca2XY * dca2XY) / 2);
       values[kQuadDCAsigXY] = std::sqrt((dca1sigXY * dca1sigXY + dca2sigXY * dca2sigXY) / 2);
       values[kQuadDCAabsZ] = std::sqrt((dca1Z * dca1Z + dca2Z * dca2Z) / 2);
@@ -3111,6 +3114,7 @@ void VarManager::FillPairCollision(const C& collision, T1 const& t1, T2 const& t
 
         values[kQuadDCAsigXYZ] = std::sqrt((dca1sigXYZ * dca1sigXYZ + dca2sigXYZ * dca2sigXYZ) / 2);
       }
+    }
     }
   }
 }
