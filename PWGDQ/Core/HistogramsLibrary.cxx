@@ -1087,10 +1087,10 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "CosPointingAngleMassCent", "", false, 200, -1.0, 1.0, VarManager::kCosPointingAngle, 100, 2.0, 4.0, VarManager::kMass, 9, 0.,90., VarManager::kCentFT0C);
         hm->AddHistogram(histClass, "VtxingChi2PCA", "", false, 100, 0.0, 10.0, VarManager::kVertexingChi2PCA);
         // add by Yuanjing
-        hm->AddHistogram(histClass, "MassPtTrack0DCAxy", "", false, 10, 2.8, 3.22, VarManager::kMass, 40, 0.0, 20.0, VarManager::kPt, 100, -1.0, 1.0, VarManager::kTrack0DCAxy);
-        hm->AddHistogram(histClass, "MassPtTrack1DCAxy", "", false, 10, 2.8, 3.2, VarManager::kMass, 40, 0.0, 20.0, VarManager::kPt, 100, -1.0, 1.0, VarManager::kTrack0DCAxy);
-        hm->AddHistogram(histClass, "MassPtTrack0DCAz", "", false, 10, 2.8, 3.2, VarManager::kMass, 40, 0.0, 20.0, VarManager::kPt, 200, -20.0, 20.0, VarManager::kTrack0DCAz);
-        hm->AddHistogram(histClass, "MassPtTrack1DCAz", "", false, 10, 2.8, 3.2, VarManager::kMass, 40, 0.0, 20.0, VarManager::kPt, 200, -20.0, 20.0, VarManager::kTrack1DCAz);
+        hm->AddHistogram(histClass, "MassPtTrack0DCAxy", "", false, 10, 2.8, 3.22, VarManager::kMass, 10, 0.0, 20.0, VarManager::kPt, 100, -0.5, 0.5, VarManager::kTrack0DCAxy);
+        // hm->AddHistogram(histClass, "MassPtTrack1DCAxy", "", false, 10, 2.8, 3.2, VarManager::kMass, 10, 0.0, 20.0, VarManager::kPt, 100, -0.5, 0.5, VarManager::kTrack0DCAxy);
+        hm->AddHistogram(histClass, "MassPtTrack0DCAz", "", false, 10, 2.8, 3.2, VarManager::kMass, 10, 0.0, 20.0, VarManager::kPt, 100, -0.5, 0.5, VarManager::kTrack0DCAz);
+        // hm->AddHistogram(histClass, "MassPtTrack1DCAz", "", false, 10, 2.8, 3.2, VarManager::kMass, 10, 0.0, 20.0, VarManager::kPt, 200, -2.0, 2.0, VarManager::kTrack1DCAz);
       }
 
       if (subGroupStr.Contains("kalman-filter")) {

@@ -3066,8 +3066,8 @@ void VarManager::FillPairCollision(const C& collision, T1 const& t1, T2 const& t
 
   if constexpr ((pairType == kDecayToEE) && ((fillMap & TrackCov) > 0 || (fillMap & ReducedTrackBarrelCov) > 0)) {
  
-    // if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] || fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
-    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] ) {
+    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] || fgUsedVars[kTrack0DCAxy] || fgUsedVars[kTrack1DCAxy] || fgUsedVars[kTrack0DCAz] || fgUsedVars[kTrack1DCAz]) {
+    // if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY] ) {
 
       auto trackPart1 = getTrackPar(t1);
       std::array<float, 2> dca1{1e10f, 1e10f};
@@ -3093,28 +3093,28 @@ void VarManager::FillPairCollision(const C& collision, T1 const& t1, T2 const& t
       values[kTrack0DCAz] = dca1Z; 
       values[kTrack1DCAz] = dca2Z; 
 
-    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY])
-    {
-      values[kQuadDCAabsXY] = std::sqrt((dca1XY * dca1XY + dca2XY * dca2XY) / 2);
-      values[kQuadDCAsigXY] = std::sqrt((dca1sigXY * dca1sigXY + dca2sigXY * dca2sigXY) / 2);
-      values[kQuadDCAabsZ] = std::sqrt((dca1Z * dca1Z + dca2Z * dca2Z) / 2);
-      values[kQuadDCAsigZ] = std::sqrt((dca1sigZ * dca1sigZ + dca2sigZ * dca2sigZ) / 2);
-      values[kSignQuadDCAsigXY] = t1.sign() * t2.sign() * TMath::Sign(1., dca1sigXY) * TMath::Sign(1., dca2sigXY) * std::sqrt((dca1sigXY * dca1sigXY + dca2sigXY * dca2sigXY) / 2);
+      if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY] || fgUsedVars[kQuadDCAabsZ] || fgUsedVars[kQuadDCAsigZ] || fgUsedVars[kQuadDCAsigXYZ] || fgUsedVars[kSignQuadDCAsigXY])
+      {
+        values[kQuadDCAabsXY] = std::sqrt((dca1XY * dca1XY + dca2XY * dca2XY) / 2);
+        values[kQuadDCAsigXY] = std::sqrt((dca1sigXY * dca1sigXY + dca2sigXY * dca2sigXY) / 2);
+        values[kQuadDCAabsZ] = std::sqrt((dca1Z * dca1Z + dca2Z * dca2Z) / 2);
+        values[kQuadDCAsigZ] = std::sqrt((dca1sigZ * dca1sigZ + dca2sigZ * dca2sigZ) / 2);
+        values[kSignQuadDCAsigXY] = t1.sign() * t2.sign() * TMath::Sign(1., dca1sigXY) * TMath::Sign(1., dca2sigXY) * std::sqrt((dca1sigXY * dca1sigXY + dca2sigXY * dca2sigXY) / 2);
 
-      double det1 = t1.cYY() * t1.cZZ() - t1.cZY() * t1.cZY();
-      double det2 = t2.cYY() * t2.cZZ() - t2.cZY() * t2.cZY();
-      if ((det1 < 0) || (det2 < 0)) {
-        values[kQuadDCAsigXYZ] = -999;
-      } else {
-        double chi2t1 = (dca1XY * dca1XY * t1.cZZ() + dca1Z * dca1Z * t1.cYY() - 2. * dca1XY * dca1Z * t1.cZY()) / det1;
-        double chi2t2 = (dca2XY * dca2XY * t2.cZZ() + dca2Z * dca2Z * t2.cYY() - 2. * dca2XY * dca2Z * t2.cZY()) / det2;
+        double det1 = t1.cYY() * t1.cZZ() - t1.cZY() * t1.cZY();
+        double det2 = t2.cYY() * t2.cZZ() - t2.cZY() * t2.cZY();
+        if ((det1 < 0) || (det2 < 0)) {
+          values[kQuadDCAsigXYZ] = -999;
+        } else {
+          double chi2t1 = (dca1XY * dca1XY * t1.cZZ() + dca1Z * dca1Z * t1.cYY() - 2. * dca1XY * dca1Z * t1.cZY()) / det1;
+          double chi2t2 = (dca2XY * dca2XY * t2.cZZ() + dca2Z * dca2Z * t2.cYY() - 2. * dca2XY * dca2Z * t2.cZY()) / det2;
 
-        double dca1sigXYZ = std::sqrt(std::abs(chi2t1) / 2.);
-        double dca2sigXYZ = std::sqrt(std::abs(chi2t2) / 2.);
+          double dca1sigXYZ = std::sqrt(std::abs(chi2t1) / 2.);
+          double dca2sigXYZ = std::sqrt(std::abs(chi2t2) / 2.);
 
-        values[kQuadDCAsigXYZ] = std::sqrt((dca1sigXYZ * dca1sigXYZ + dca2sigXYZ * dca2sigXYZ) / 2);
+          values[kQuadDCAsigXYZ] = std::sqrt((dca1sigXYZ * dca1sigXYZ + dca2sigXYZ * dca2sigXYZ) / 2);
+        }
       }
-    }
     }
   }
 }
