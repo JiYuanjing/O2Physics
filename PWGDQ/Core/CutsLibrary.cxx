@@ -584,7 +584,14 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
 
   if (!nameStr.compare("jpsiPbPbdebugCuts3")) {
      cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
-     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+     cut->AddCut(GetAnalysisCut("LooseGlobalTrackRun3_PbPb2"));
+     cut->AddCut(GetAnalysisCut("jpsi_TPCPID_debug7"));
+     return cut;
+  }
+
+  if (!nameStr.compare("jpsiPbPbdebugCuts4")) {
+     cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
+     cut->AddCut(GetAnalysisCut("LooseGlobalTrackRun3_PbPb3"));
      cut->AddCut(GetAnalysisCut("jpsi_TPCPID_debug7"));
      return cut;
   }
@@ -4606,25 +4613,47 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   // Yuanjing add
   if (!nameStr.compare("TightGlobalTrackRun3_PbPb1")) {
-    cut->AddCut(VarManager::kIsITSHitAll, 0.5, 1.5);
+    cut->AddCut(VarManager::kIsITSibAll, 0.5, 1.5);
     cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut->AddCut(VarManager::kITSchi2, 0.0, 5.0);
-    cut->AddCut(VarManager::kITSncls, 4.5, 7.5);
+    // cut->AddCut(VarManager::kITSncls, 6.5, 7.5);
+    cut->AddCut(VarManager::kITSncls, 6.5, 7.5, false, VarManager::kPt, 0., 1.5, false);
+    cut->AddCut(VarManager::kITSncls, 4.5, 7.5, false, VarManager::kPt, 1.5, 1e+10, false);
     cut->AddCut(VarManager::kTPCnclsCR, 80.0, 161.);
     cut->AddCut(VarManager::kTPCncls, 90.0, 170.);
     cut->AddCut(VarManager::kTrackDCAxy, -1, 1);
-    cut->AddCut(VarManager::kTrackDCAz, -3.0, 3.0)
+    cut->AddCut(VarManager::kTrackDCAz, -1.0, 1.0)
     return cut;
   }
 
   //Yuanjing add
   if (!nameStr.compare("LooseGlobalTrackRun3_PbPb1")) {
-    cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
+    // cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
+    cut->AddCut(VarManager::kIsITSibAll, 0.5, 1.5);
     cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut->AddCut(VarManager::kTPCncls, 90., 161.);
     cut->AddCut(VarManager::kITSncls, 2.5, 7.5);
     cut->AddCut(VarManager::kTrackDCAxy, -1, 1);
-    cut->AddCut(VarManager::kTrackDCAz, -3.0, 3.0);
+    cut->AddCut(VarManager::kTrackDCAz, -1.0, 1.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("LooseGlobalTrackRun3_PbPb2")) {
+    cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut->AddCut(VarManager::kTPCncls, 70., 161.);
+    cut->AddCut(VarManager::kITSncls, 2.5, 7.5);
+    cut->AddCut(VarManager::kTrackDCAxy, -1, 1);
+    cut->AddCut(VarManager::kTrackDCAz, -1.0, 1.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("LooseGlobalTrackRun3_PbPb3")) {
+    cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut->AddCut(VarManager::kTPCncls, 70., 161.);
+    cut->AddCut(VarManager::kTrackDCAxy, -1, 1);
+    cut->AddCut(VarManager::kTrackDCAz, -1.0, 1.0);
     return cut;
   }
 
