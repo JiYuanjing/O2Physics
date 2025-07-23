@@ -495,6 +495,7 @@ class VarManager : public TObject
     kIsITSibAny,
     kIsITSibFirst,
     kIsITSibAll,
+    kIsITSHitAll,
     kITSncls,
     kITSchi2,
     kITSlayerHit,
@@ -2310,6 +2311,10 @@ void VarManager::FillTrack(T const& track, float* values)
     }
     if (fgUsedVars[kIsITSibAll]) {
       values[kIsITSibAll] = (track.itsClusterMap() & (1 << uint8_t(0))) > 0 && (track.itsClusterMap() & (1 << uint8_t(1))) > 0 && (track.itsClusterMap() & (1 << uint8_t(2))) > 0;
+    }
+    // Yuanjing add in 2025/7/23
+    if (fgUsedVars[kIsITSHitAll]) {
+      values[kIsITSHitAll] = (track.itsClusterMap() & (1 << uint8_t(0))) > 0 && (track.itsClusterMap() & (1 << uint8_t(1))) > 0 && (track.itsClusterMap() & (1 << uint8_t(2))) > 0 && (track.itsClusterMap() & (1 << uint8_t(3))) > 0 && (track.itsClusterMap() & (1 << uint8_t(4))) > 0 && (track.itsClusterMap() & (1 << uint8_t(5))) > 0 && (track.itsClusterMap() & (1 << uint8_t(6))) > 0;
     }
 
     values[kTrackTime] = track.trackTime();

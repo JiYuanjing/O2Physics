@@ -568,6 +568,29 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("jpsiPbPbdebugCuts1")) {
+     cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
+     cut->AddCut(GetAnalysisCut("TightGlobalTrackRun3_PbPb1"));
+     // cut->AddCut(GetAnalysisCut("jpsi_TPCPID_debug7"));
+     cut->AddCut(GetAnalysisCut("electronPIDnsigma"));
+     return cut;
+  }
+
+  if (!nameStr.compare("jpsiPbPbdebugCuts2")) {
+     cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
+     cut->AddCut(GetAnalysisCut("LooseGlobalTrackRun3_PbPb1"));
+     // cut->AddCut(GetAnalysisCut("jpsi_TPCPID_debug7"));
+     cut->AddCut(GetAnalysisCut("electronPIDnsigma"));
+     return cut;
+  }
+
+  if (!nameStr.compare("jpsiPbPbdebugCuts3")) {
+     cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
+     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+     cut->AddCut(GetAnalysisCut("electronPIDnsigma"));
+     return cut;
+  }
+
   if (!nameStr.compare("emu_electronCuts")) {
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug4"));
@@ -4580,6 +4603,25 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     cut->AddCut(VarManager::kITSncls, 4.5, 7.5);
     cut->AddCut(VarManager::kTPCnclsCR, 140.0, 161.);
     cut->AddCut(VarManager::kTPCncls, 120.0, 170.);
+    return cut;
+  }
+
+  // Yuanjing add
+  if (!nameStr.compare("TightGlobalTrackRun3_PbPb1")) {
+    cut->AddCut(VarManager::kIsITSHitAll, 0.5, 1.5);
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut->AddCut(VarManager::kITSchi2, 0.0, 5.0);
+    cut->AddCut(VarManager::kITSncls, 4.5, 7.5);
+    cut->AddCut(VarManager::kTPCnclsCR, 80.0, 161.);
+    cut->AddCut(VarManager::kTPCncls, 90.0, 170.);
+    return cut;
+  }
+
+  //Yuanjing add
+  if (!nameStr.compare("LooseGlobalTrackRun3_PbPb1")) {
+    cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut->AddCut(VarManager::kTPCncls, 70, 161.);
     return cut;
   }
 

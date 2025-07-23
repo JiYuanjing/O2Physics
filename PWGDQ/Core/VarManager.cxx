@@ -1443,6 +1443,7 @@ void VarManager::SetDefaultVarNames()
   fgVarNamesMap["kIsITSibAny"] = kIsITSibAny;
   fgVarNamesMap["kIsITSibFirst"] = kIsITSibFirst;
   fgVarNamesMap["kIsITSibAll"] = kIsITSibAll;
+  fgVarNamesMap["kIsITSHitAll"] = kIsITSHitAll;
   fgVarNamesMap["kITSncls"] = kITSncls;
   fgVarNamesMap["kITSchi2"] = kITSchi2;
   fgVarNamesMap["kITSlayerHit"] = kITSlayerHit;
