@@ -1118,6 +1118,8 @@ class VarManager : public TObject
   template <typename T1, typename T2>
   static void FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <typename T1, typename T2>
+  static void FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
+  template <typename T1, typename T2>
   static void FillDileptonPhoton(T1 const& dilepton, T2 const& photon, float* values = nullptr);
   template <typename T>
   static void FillHadron(T const& hadron, float* values = nullptr, float hadronMass = 0.0f);
@@ -5075,6 +5077,94 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
   }
   if (fgUsedVars[kDeltaEta]) {
     values[kDeltaEta] = dilepton.eta() - hadron.eta();
+  }
+}
+
+template <typename T1, typename T2>
+void VarManager::FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 const& hadron, float* values, float hadronMass)
+{
+  if (!values) {
+    values = fgValues;
+  }
+
+  float m1 = o2::constants::physics::MassElectron;
+  float m2 = o2::constants::physics::MassElectron;
+
+  values[kCharge] = t1.sign() + t2.sign();
+  values[kCharge1] = t1.sign();
+  values[kCharge2] = t2.sign();
+  ROOT::Math::PtEtaPhiMVector electron1(t1.pt(), t1.eta(), t1.phi(), m1);
+  ROOT::Math::PtEtaPhiMVector electron2(t2.pt(), t2.eta(), t2.phi(), m2);
+  ROOT::Math::PtEtaPhiMVector dilepton = electron1 + electron2;
+  // values[kMass] = v12.M();
+  // values[kPt] = v12.Pt();
+  // values[kEta] = v12.Eta();
+  // // values[kPhi] = v12.Phi();
+  // values[kPhi] = v12.Phi() > 0 ? v12.Phi() : v12.Phi() + 2. * M_PI;
+  // values[kRap] = -v12.Rapidity();
+  // double Ptot1 = TMath::Sqrt(v1.Px() * v1.Px() + v1.Py() * v1.Py() + v1.Pz() * v1.Pz());
+  // double Ptot2 = TMath::Sqrt(v2.Px() * v2.Px() + v2.Py() * v2.Py() + v2.Pz() * v2.Pz());
+  // values[kDeltaPtotTracks] = Ptot1 - Ptot2;
+
+  // if (t1.sign() > 0) {
+  //   values[kPt1] = t1.pt();
+  //   values[kEta1] = t1.eta();
+  //   values[kPhi1] = t1.phi();
+  //   values[kPt2] = t2.pt();
+  //   values[kEta2] = t2.eta();
+  //   values[kPhi2] = t2.phi();
+  // } else {
+  //   values[kPt1] = t2.pt();
+  //   values[kEta1] = t2.eta();
+  //   values[kPhi1] = t2.phi();
+  //   values[kPt2] = t1.pt();
+  //   values[kEta2] = t1.eta();
+  //   values[kPhi2] = t1.phi();
+  // }
+
+  if (fgUsedVars[kPairMass] || fgUsedVars[kPairPt] || fgUsedVars[kPairEta] || fgUsedVars[kPairPhi] || fgUsedVars[kPairMassDau] || fgUsedVars[kPairPtDau] || fgUsedVars[kDileptonHadronKstar] ) {
+    ROOT::Math::PtEtaPhiMVector v1(dilepton.Pt(), dilepton.Eta(), dilepton.Phi(), dilepton.M());
+    ROOT::Math::PtEtaPhiMVector v2(hadron.pt(), hadron.eta(), hadron.phi(), hadronMass);
+    ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+    values[kPairMass] = v12.M();
+    values[kPairPt] = v12.Pt();
+    values[kPairEta] = v12.Eta();
+    values[kPairPhi] = v12.Phi();
+    values[kPairMassDau] = dilepton.M();
+    values[kPairPtDau] = dilepton.Pt();
+    values[kDileptonP] = v1.P();
+    values[kMassDau] = hadronMass;
+    values[kDeltaMass] = v12.M() - dilepton.M();
+
+    ROOT::Math::PtEtaPhiMVector v12_Qvect = v1 - v2;
+    double Pinv = v12.M();
+    double Q1 = ( dilepton.M()*dilepton.M() - hadronMass*hadronMass )/Pinv;
+    values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
+
+    // fill hadron info
+    values[kPt] = hadron.pt();
+    values[kP] = v2.P();
+    values[kCharge] = hadron.sign();
+  }
+  if (fgUsedVars[kDeltaPhi]) {
+    double delta = dilepton.Phi() - hadron.phi();
+    if (delta > 3.0 / 2.0 * M_PI) {
+      delta -= 2.0 * M_PI;
+    }
+    if (delta < -0.5 * M_PI) {
+      delta += 2.0 * M_PI;
+    }
+    values[kDeltaPhi] = delta;
+  }
+  if (fgUsedVars[kDeltaPhiSym]) {
+    double delta = std::abs(dilepton.Phi() - hadron.phi());
+    if (delta > M_PI) {
+      delta = 2 * M_PI - delta;
+    }
+    values[kDeltaPhiSym] = delta;
+  }
+  if (fgUsedVars[kDeltaEta]) {
+    values[kDeltaEta] = dilepton.Eta() - hadron.eta();
   }
 }
 
