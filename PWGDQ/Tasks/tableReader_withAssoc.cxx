@@ -3977,6 +3977,10 @@ struct AnalysisDileptonTrack {
 
           // get the track from this association
           auto lepton1 = lepton1Assoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+          
+          // ensure electron1 and proton are not the same 
+          if (lepton1.globalIndex()==hadron.globalIndex())
+            continue;
 
           for (auto lepton2Assoc: evLepton2) {
           // add electron cut bit
@@ -4053,9 +4057,134 @@ struct AnalysisDileptonTrack {
 
   }
 
-  void processJpsiMEProtonMEFemto(MyEvents&)
+  void processJpsiMEProtonMEFemto(soa::Filtered<MyEventsHashVtxCovSelected>& events,
+                               soa::Filtered<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> const& assocs,
+                               MyBarrelTracksWithCov const&)
   {
-    // to be added
+    if (events.size() == 0) {
+      return;
+    }
+    // events.bindExternalIndices(&dileptons);
+    events.bindExternalIndices(&assocs);
+
+    // loop over two event comibnations
+    // for (auto& [event1, event2] : selfCombinations(fHashBin, fConfigMixingDepth.value, -1, events, events)) {
+    for (auto& [event1, event2, event3] : selfCombinations(fHashBin, fConfigMixingDepth.value, -1, events, events, events)) {
+      // fill event quantities
+      VarManager::ResetValues(0, VarManager::kNVars);
+      VarManager::FillEvent<gkEventFillMap>(event1, VarManager::fgValues);
+
+      // get the dilepton slice for event1
+      // auto evDileptons = dileptons.sliceBy(dielectronsPerCollision, event1.globalIndex());
+      // evDileptons.bindExternalIndices(&events);
+      auto evLepton1= assocs.sliceBy(trackAssocsPerCollision, event1.globalIndex());
+      evLepton1.bindExternalIndices(&events);
+
+      auto evLepton2= assocs.sliceBy(trackAssocsPerCollision, event2.globalIndex());
+      evLepton2.bindExternalIndices(&events);
+
+      // get the track associations slice for event2
+      auto evHadron= assocs.sliceBy(trackAssocsPerCollision, event3.globalIndex());
+      evHadron.bindExternalIndices(&events);
+
+      // loop over associations
+      for (auto& hadronAssoc : evHadron) {
+        // check that this track fulfills at least one of the specified cuts
+        uint32_t hadronSelection = (hadronAssoc.isBarrelSelected_raw() & fTrackCutBitMap);
+        if (!hadronSelection) {
+          continue;
+        }
+        
+        // get the track from this association
+        auto hadron= hadronAssoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+
+        // loop over dileptons
+        for (auto lepton1Assoc: evLepton1) {
+          // add electron cut bit
+          // check that this track fulfills at least one of the specified cuts
+          uint32_t eSelection1 = (lepton1Assoc.isBarrelSelected_raw() & fDileptonCutBitMap);
+          if (!eSelection1) {
+            continue;
+          }
+
+          // get the track from this association
+          auto lepton1 = lepton1Assoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+
+          for (auto lepton2Assoc: evLepton2) {
+          // add electron cut bit
+          // check that this track fulfills at least one of the specified cuts
+          uint32_t eSelection2 = (lepton2Assoc.isBarrelSelected_raw() & fDileptonCutBitMap);
+          if (!eSelection2) {
+            continue;
+          }
+          auto lepton2 = lepton2Assoc.template reducedtrack_as<MyBarrelTracksWithCov>();
+
+         
+          // add the same filter bit as sameevent pairing 
+          uint32_t twoTrackFilter = static_cast<uint32_t>(0);
+          
+          // twoTrackFilter = lepton1Assoc.isBarrelSelected_raw() & lepton2Assoc.isBarrelSelected_raw() & lepton1Assoc.isBarrelSelectedPrefilter_raw() & lepton2Assoc.isBarrelSelectedPrefilter_raw() & fDileptonCutBitMap;
+          twoTrackFilter = lepton1Assoc.isBarrelSelected_raw() & lepton2Assoc.isBarrelSelected_raw() & fDileptonCutBitMap;
+          if (!twoTrackFilter) {
+            continue;
+          }
+
+          // auto t1 = a1.template reducedtrack_as<TTracks>();
+          // if (lepton1.barrelAmbiguityInBunch() > 1) {
+          //   twoTrackFilter |= (static_cast<uint32_t>(1) << 28);
+          // }
+          // if (lepton2.barrelAmbiguityInBunch() > 1) {
+          //   twoTrackFilter |= (static_cast<uint32_t>(1) << 29);
+          // }
+          // if (lepton1.barrelAmbiguityOutOfBunch() > 1) {
+          //   twoTrackFilter |= (static_cast<uint32_t>(1) << 30);
+          // }
+          // if (lepton2.barrelAmbiguityOutOfBunch() > 1) {
+          //   twoTrackFilter |= (static_cast<uint32_t>(1) << 31);
+          // }
+
+
+          if (((lepton1.sign()+lepton2.sign())==0 && fConfigDileptonSign!=0) || ((lepton1.sign()+lepton2.sign())!=0 && fConfigDileptonSign==0)) {
+             continue;
+          }
+
+          // Yuanjing added
+          // VarManager::FillTrack<fgDileptonFillMap>(dilepton, VarManager::fgValues);
+          // compute dilepton - track quantities
+          double hadronmass = 0.938;
+          VarManager::FillElectronElectronHadronFemto( lepton1, lepton2, hadron, VarManager::fgValues, hadronmass);
+
+          // note that no Lxy cut, sign cut is set above
+          double dilepton_mass = VarManager::fgValues[VarManager::kPairMassDau]; 
+          double kstar= VarManager::fgValues[VarManager::kDileptonHadronKstar]; 
+          double dilepton_pt = VarManager::fgValues[VarManager::kPairPtDau]; 
+          double dilepton_Lxy = 0.;
+          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonpTCut && dilepton_Lxy>fConfigDileptonLxyCut;
+          if (!passDileptonCut) {
+            continue;
+          }
+          
+         // LOG(info)<< "dilepton_mass: "<< dilepton_mass << "dilepton_pt: "<< dilepton_pt<<"kstar: "<< kstar;
+
+          // loop over dilepton leg cuts and track cuts and fill histograms separately for each combination
+          // LOG(info)<<"ncuts: "<<fNCuts<<" twoTrackFilter:"<<twoTrackFilter;
+          for (int icut = 0; icut < fNCuts; icut++) {
+            if (!(twoTrackFilter & (static_cast<uint32_t>(1) << icut))) {
+              continue;
+            }
+            for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
+              if (hadronSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
+                // LOG(info)<< "dilepton_mass: "<< dilepton_mass << "dilepton_pt: "<< dilepton_pt<<"kstar: "<< kstar;
+         // LOG(info)<< "pass track cut: "<< icut<<" "<< iTrackCut;
+                fHistMan->FillHistClass(Form("DileptonMETrackMEFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
+              }
+            }
+          }
+        } // end for lepton2
+       } // end for lepton1 
+      } // end for (assocs)
+    } // end event loop
+
   }
 
   void processMuonMixedEvent(soa::Filtered<MyEventsHashSelected>& events,
