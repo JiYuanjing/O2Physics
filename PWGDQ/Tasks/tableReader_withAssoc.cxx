@@ -3321,8 +3321,8 @@ struct AnalysisDileptonTrack {
       if (!str_cfgPairing_TrackCuts.IsNull()) {
         std::unique_ptr<TObjArray> objArrayTrackCuts(str_cfgPairing_TrackCuts.Tokenize(","));
         for (int icut = 0; icut < cfgTrackSelection_objArrayTrackCuts->GetEntries(); ++icut) {
-          TString tempStr = cfgTrackSelection_objArrayTrackCuts->At(icut)->GetName();
-          if (objArrayTrackCuts->FindObject(tempStr.Data()) != nullptr) {
+          // TString tempStr = cfgTrackSelection_objArrayTrackCuts->At(icut)->GetName();
+          if (objArrayTrackCuts->FindObject(fTrackCutNames[icut].Data()) != nullptr) {
             fDileptonCutBitMap|= (static_cast<uint32_t>(1) << icut);
           }
         }
@@ -3397,7 +3397,9 @@ struct AnalysisDileptonTrack {
             continue;
           }
 
-          DefineHistograms(fHistMan, Form("DileptonTrack_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), fConfigHistogramSubgroups.value.data());
+          if (isBarrel || isBarrelFemto || isBarrelAsymmetric || isMuon) {
+            DefineHistograms(fHistMan, Form("DileptonTrack_%s_%s", pairLegCutName.Data(), fTrackCutNames[iCutTrack].Data()), fConfigHistogramSubgroups.value.data());
+          }
 
           if (!cfgPairing_strCommonTrackCuts.IsNull()) {
             std::unique_ptr<TObjArray> objArrayCommon(cfgPairing_strCommonTrackCuts.Tokenize(","));
@@ -3923,8 +3925,8 @@ struct AnalysisDileptonTrack {
     } // end event loop
   }
 
-  // note that no pair cut applied 
-  void processJpsiMEHadronFemto(soa::Filtered<MyEventsHashVtxCovSelected>& events,
+  // note that no cut on Lxy applied 
+  void processJpsiMEProtonFemto(soa::Filtered<MyEventsHashVtxCovSelected>& events,
                                soa::Filtered<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> const& assocs,
                                MyBarrelTracksWithCov const&)
   {
@@ -4017,15 +4019,29 @@ struct AnalysisDileptonTrack {
           // compute dilepton - track quantities
           double hadronmass = 0.938;
           VarManager::FillElectronElectronHadronFemto( lepton1, lepton2, hadron, VarManager::fgValues, hadronmass);
-          // add cut on pairs 
+
+          // note that no Lxy cut, sign cut is set above
+          double dilepton_mass = VarManager::fgValues[VarManager::kPairMassDau]; 
+          double kstar= VarManager::fgValues[VarManager::kDileptonHadronKstar]; 
+          double dilepton_pt = VarManager::fgValues[VarManager::kPairPtDau]; 
+          double dilepton_Lxy = 0.;
+          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonpTCut && dilepton_Lxy>fConfigDileptonLxyCut;
+          if (!passDileptonCut) {
+            continue;
+          }
+          
+         // LOG(info)<< "dilepton_mass: "<< dilepton_mass << "dilepton_pt: "<< dilepton_pt<<"kstar: "<< kstar;
 
           // loop over dilepton leg cuts and track cuts and fill histograms separately for each combination
+          // LOG(info)<<"ncuts: "<<fNCuts<<" twoTrackFilter:"<<twoTrackFilter;
           for (int icut = 0; icut < fNCuts; icut++) {
-            if (twoTrackFilter & (static_cast<uint32_t>(1) << icut)) {
+            if (!(twoTrackFilter & (static_cast<uint32_t>(1) << icut))) {
               continue;
             }
             for (uint32_t iTrackCut = 0; iTrackCut < fTrackCutNames.size(); iTrackCut++) {
               if (hadronSelection & (static_cast<uint32_t>(1) << iTrackCut)) {
+                // LOG(info)<< "dilepton_mass: "<< dilepton_mass << "dilepton_pt: "<< dilepton_pt<<"kstar: "<< kstar;
+         // LOG(info)<< "pass track cut: "<< icut<<" "<< iTrackCut;
                 fHistMan->FillHistClass(Form("DileptonMETrackFemto_%s_%s", fTrackCutNames[icut].Data(), fTrackCutNames[iTrackCut].Data()), VarManager::fgValues);
               }
             }
@@ -4095,7 +4111,7 @@ struct AnalysisDileptonTrack {
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelSkimmed, "Run barrel dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processJpsiHadronFemto, "Run barrel dilepton-track pairing for femto, using skimmed data", false);
   // 20250725
-  PROCESS_SWITCH(AnalysisDileptonTrack, processJpsiMEHadronFemto, "Run barrel dilepton(ME)-track pairing for femto, using skimmed data", false);
+  PROCESS_SWITCH(AnalysisDileptonTrack, processJpsiMEProtonFemto, "Run barrel dilepton(ME)-track pairing for femto, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processDstarToD0Pi, "Run barrel pairing of D0 daughters with pion candidate, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processMuonSkimmed, "Run muon dilepton-track pairing, using skimmed data", false);
   PROCESS_SWITCH(AnalysisDileptonTrack, processBarrelMixedEvent, "Run barrel dilepton-hadron mixed event pairing", false);
