@@ -568,6 +568,30 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("pJpsi_debug1")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_DCA05"));
+    return cut;
+  }
+
+  if (!nameStr.compare("pJpsi_debug2")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_verytight"));
+    return cut;
+  }
+
+  if (!nameStr.compare("pJpsi_debug3")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrackDCA"));
+    return cut;
+  }
+
   if (!nameStr.compare("jpsiPbPbdebugCuts0")) {
      cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
      cut->AddCut(GetAnalysisCut("LooseGlobalTrackRun3_PbPb2"));
@@ -5015,6 +5039,13 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   if (!nameStr.compare("PrimaryTrack_DCA05")) {
     cut->AddCut(VarManager::kTrackDCAsigXY, -0.5, 0.5);
     cut->AddCut(VarManager::kTrackDCAsigZ, -0.5, 0.5);
+    return cut;
+  }
+
+  // add by Yuanjing 
+  if (!nameStr.compare("PrimaryTrack_verytight")) {
+    cut->AddCut(VarManager::kTrackDCAsigXY, -0.05, 0.05);
+    cut->AddCut(VarManager::kTrackDCAsigZ, -0.05, 0.05);
     return cut;
   }
 

@@ -91,7 +91,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "MultFDDC", "MultFDDC", false, 1000, 0.0, 25000.0, VarManager::kMultFDDC);
         hm->AddHistogram(histClass, "MultTracklets", "MultTracklets", false, 250, 0.0, 250.0, VarManager::kMultTracklets);
         hm->AddHistogram(histClass, "VtxNContribReal", "Vtx n contributors", false, 150, 0.0, 150.0, VarManager::kVtxNcontribReal);
-        hm->AddHistogram(histClass, "VtxNContrib", "Vtx n contributors", false, 100, 0.0, 100.0, VarManager::kVtxNcontrib);
+        // hm->AddHistogram(histClass, "VtxNContrib", "Vtx n contributors", false, 100, 0.0, 100.0, VarManager::kVtxNcontrib);
+        hm->AddHistogram(histClass, "VtxNContrib", "Vtx n contributors", false, 350, 0.0, 350.0, VarManager::kVtxNcontrib);
         hm->AddHistogram(histClass, "MultNTracksPVeta1", "MultNTracksPVeta1", false, 150, 0, 150.0, VarManager::kMultNTracksPVeta1);
         hm->AddHistogram(histClass, "MultNTracksPVetaHalf", "MultNTracksPVetaHalf", false, 150, 0, 150.0, VarManager::kMultNTracksPVetaHalf);
         hm->AddHistogram(histClass, "MultTPC_MultFV0A", "MultTPC vs MultFV0A", false, 100, 0, 500.0, VarManager::kMultTPC, 100, 0, 500.0, VarManager::kMultFV0A);
