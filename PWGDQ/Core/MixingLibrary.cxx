@@ -69,15 +69,15 @@ void o2::aod::dqmixing::SetUpMixing(MixingHandler* mh, const char* mixingVarible
     mh->AddMixingVariable(VarManager::kMultFT0C, fMultFT0CLimsHashing.size(), fMultFT0CLimsHashing);
   }
   if (!nameStr.compare("Mult1")) {
-    std::vector<float> fMultLimsHashing = {0.0f, 10.0f, 20.0f, 40.0f, 60.0f, 80.0f, 100.0f, 120.0f, 160.0f, 220.0f, 350.0f};
+    std::vector<float> fMultLimsHashing = {0.0f, 10.0f, 20.0f, 40.0f, 60.0f, 80.0f, 100.0f, 120.0f, 160.0f, 350.0f};
     mh->AddMixingVariable(VarManager::kVtxNcontrib, fMultLimsHashing.size(), fMultLimsHashing);
   }
   if (!nameStr.compare("Mult2")) {
-    std::vector<float> fMultLimsHashing = {0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f, 120.0f, 140.0f, 180.0f, 220.0f, 350.0f};
+    std::vector<float> fMultLimsHashing = {0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f, 120.0f, 140.0f, 180.0f, 350.0f};
     mh->AddMixingVariable(VarManager::kVtxNcontrib, fMultLimsHashing.size(), fMultLimsHashing);
   }
   if (!nameStr.compare("Mult3")) {
-    std::vector<float> fMultLimsHashing = {0.0f, 5.0f, 10.0f, 15.0f, 20.0f, 25.0f, 30.0f, 35.0f, 40.0f, 45.0f, 50.0f, 55.0f, 60.0f, 65.0f, 70.0f, 75.0f, 80.0f, 85.0f, 90.0f, 100.0f, 120.0f, 140.0f, 160.0f, 180.0f, 220.0f,350.0f};
+    std::vector<float> fMultLimsHashing = {0.0f, 5.0f, 10.0f, 15.0f, 20.0f, 25.0f, 30.0f, 35.0f, 40.0f, 45.0f, 50.0f, 55.0f, 60.0f, 65.0f, 70.0f, 75.0f, 80.0f, 85.0f, 90.0f, 100.0f, 120.0f, 140.0f, 165.0f, 200.0f,350.0f};
     mh->AddMixingVariable(VarManager::kVtxNcontrib, fMultLimsHashing.size(), fMultLimsHashing);
   }
   if (!nameStr.compare("Vtx1")) {

@@ -572,7 +572,7 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
     cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
-    cut->AddCut(GetAnalysisCut("PrimaryTrack_DCA05"));
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_Jpsifemto"));
     return cut;
   }
 
@@ -580,7 +580,7 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
     cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
-    cut->AddCut(GetAnalysisCut("PrimaryTrack_verytight"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrackDCA"));
     return cut;
   }
 
@@ -588,7 +588,7 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
     cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
-    cut->AddCut(GetAnalysisCut("standardPrimaryTrackDCA"));
+    cut->AddCut(GetAnalysisCut("tightPrimaryTrack"));
     return cut;
   }
 
@@ -5043,9 +5043,9 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   }
 
   // add by Yuanjing 
-  if (!nameStr.compare("PrimaryTrack_verytight")) {
-    cut->AddCut(VarManager::kTrackDCAsigXY, -0.05, 0.05);
-    cut->AddCut(VarManager::kTrackDCAsigZ, -0.05, 0.05);
+  if (!nameStr.compare("PrimaryTrack_Jpsifemto")) {
+    cut->AddCut(VarManager::kTrackDCAxy, -0.5, 0.5);
+    cut->AddCut(VarManager::kTrackDCAz, -0.5, 0.5);
     return cut;
   }
 
