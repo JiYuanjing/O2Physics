@@ -93,6 +93,22 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     signal = new MCSignal(name, "Primary Proton", {prong}, {-1}); // define the signal using the full constructor
     return signal;
   }
+  if (!nameStr.compare("ProtonFromTransport")) {
+    MCProng prong(1, {2212}, {true}, {false}, {0}, {0}, {false});
+    prong.SetSourceBit(0, MCProng::kProducedInTransport);
+    signal = new MCSignal(name, "ProtonFromTransport", {prong}, {-1});
+    return signal;
+  }
+  if (!nameStr.compare("ProtonFromLambda")) {
+    MCProng prong(2, {2212, 3122}, {true, true}, {false, false}, {0,0}, {0,0}, {false,false});
+    signal = new MCSignal(name, "Proton from Lambda0 decays", {prong}, {-1});
+    return signal;
+  }
+  if (!nameStr.compare("ProtonFromSigma")) {
+    MCProng prong(2, {2212, 3222}, {true, true}, {false, false}, {0,0}, {0,0}, {false,false});
+    signal = new MCSignal(name, "Proton from Sigma+ decays", {prong}, {-1});
+    return signal;
+  }
   if (!nameStr.compare("phiMeson")) {
     MCProng prong(1, {333}, {true}, {false}, {0}, {0}, {false}); // define 1-generation prong using the full constructor
     signal = new MCSignal(name, "phi meson", {prong}, {-1});     // define the signal using the full constructor
