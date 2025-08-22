@@ -4882,7 +4882,7 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     cut->AddCut(VarManager::kTrackDCAxy, -0.1, 0.1);
     cut->AddCut(VarManager::kTrackDCAz, -0.15, 0.15);
     // cut->AddCut(VarManager::kPt, 0.4, 3);
-    cut->AddCut(VarManager::kPt, 0.25, 3);
+    cut->AddCut(VarManager::kPin, 0.25, 3);
     cut->AddCut(VarManager::kEta, -0.9, 0.9);
     cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
     cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
@@ -5854,13 +5854,13 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("protonPID_TPCnTOF3")) {
     cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
-    cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.8, 1e+10, false);
+    cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kPin, 0.9, 1e+10, false);
     return cut;
   }
 
   if (!nameStr.compare("protonPID_TPCnTOF3_2")) {
-    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.0, 0.9, false);
-    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kP, 0.9, 1e+10, false);
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kPin, 0.0, 0.9, false);
+    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kPin, 0.9, 1e+10, false);
     return cut;
   }
 
@@ -5872,7 +5872,7 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("protonPID_TPCnTOF5")) {
     cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
-    // cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kP, 0.8, 1e+10, false);
+    // cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kPin, 0.9, 1e+10, false);
     return cut;
   }
 
