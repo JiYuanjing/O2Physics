@@ -591,9 +591,10 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "TPCnSigPr_timeFromSOR", "TPC n-#sigma(p) vs time from SOR", true, 10000, 0.0, 1000.0, VarManager::kTimeFromSOR, 10, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         hm->AddHistogram(histClass, "TPCnSigPr_occupancy", "TPC n-#sigma(p) vs. occupancy", false, 200, 0., 20000., VarManager::kTrackOccupancyInTimeRange, 100, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         if (subGroupStr.Contains("tpcpid_femto")) {
-          hm->AddHistogram(histClass, "TPCnSigPr_p", "TPC n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
+          hm->AddHistogram(histClass, "TPCnSigPr_pIN_femto", "TPC n-#sigma(p) vs pIN", false, 100, 0.0, 5.0, VarManager::kPin, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
           hm->AddHistogram(histClass, "TPCTOFnSigPr_p", "TPC+TOF n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
-          hm->AddHistogram(histClass, "TPCdedx_p", "TPC dE/dx vs p", false, 100, 0.0, 10.0, VarManager::kP, 200, 0.0, 200., VarManager::kTPCsignal);
+          hm->AddHistogram(histClass, "TPCTOFnSigPr_pIN", "TPC+TOF n-#sigma(p) vs pIN", false, 100, 0.0, 5.0, VarManager::kPin, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
+          hm->AddHistogram(histClass, "TPCdedx_pIN_femto", "TPC dE/dx vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);
         }
         if (subGroupStr.Contains("tpcpid_corr")) {
           hm->AddHistogram(histClass, "TPCnSigEl_Corr_pIN", "TPC n-#sigma(e) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaEl_Corr);
@@ -700,6 +701,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "TOFnSigPr_pIN", "TOF n-#sigma(p) vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTOFnSigmaPr);
         if (subGroupStr.Contains("tofpid_femto")) {
           hm->AddHistogram(histClass, "TOFnSigPr_p", "TOF n-#sigma(p) vs p", false, 100, 0.0, 10.0, VarManager::kP, 100, -10.0, 10.0, VarManager::kTOFnSigmaPr);
+          hm->AddHistogram(histClass, "TOFnSigPr_pIN_femto", "TOF n-#sigma(p) vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -10.0, 10.0, VarManager::kTOFnSigmaPr);
         }
       }
     }
