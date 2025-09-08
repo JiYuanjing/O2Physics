@@ -637,8 +637,12 @@ struct AnalysisTrackSelection {
       if (track.has_reducedMCTrack()) {
         auto trackMC = track.reducedMCTrack();
         auto eventMCfromTrack = trackMC.reducedMCevent();
-        if (eventMC != nullptr) {
-          isCorrectAssoc = (eventMCfromTrack.globalIndex() == eventMC->globalIndex());
+        // if (eventMC != nullptr) {
+        if (event.has_reducedMCevent()) {
+          auto eventMC = event.reducedMCevent();
+          // isCorrectAssoc = (eventMCfromTrack.globalIndex() == eventMC->globalIndex());
+          isCorrectAssoc = (eventMCfromTrack.globalIndex() == eventMC.globalIndex());
+          // LOG(info)<<eventMCfromTrack.globalIndex()<<" "<<eventMC->globalIndex();
         }
         VarManager::FillTrackMC(tracksMC, trackMC);
       }
@@ -672,8 +676,10 @@ struct AnalysisTrackSelection {
               if (filterMap & (static_cast<uint32_t>(1) << icut)) {
                 if (isCorrectAssoc) {
                   fHistMan->FillHistClass(fHistNamesMCMatched[icut * 2 * fMCSignals.size() + 2 * isig].Data(), VarManager::fgValues);
+                  // fHistMan->FillHistClass(Form("AssocsCorrectBarrel_%s_%s", fTrackCuts[icut]->GetName(), (*sig)->GetName()), VarManager::fgValues);
                 } else {
                   fHistMan->FillHistClass(fHistNamesMCMatched[icut * 2 * fMCSignals.size() + 2 * isig + 1].Data(), VarManager::fgValues);
+                  // fHistMan->FillHistClass(Form("AssocsIncorrectBarrel_%s_%s", fTrackCuts[icut]->GetName(), (*sig)->GetName()), VarManager::fgValues);
                 }
               }
             } // end loop over cuts
