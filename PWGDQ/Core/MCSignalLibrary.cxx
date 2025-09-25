@@ -115,12 +115,12 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     return signal;
   }
   if (!nameStr.compare("protonFromLambda0")) {
-    MCProng prong(2, {2212, 3122}, {true, true}, {false, false}, {0,0}, {0,0}, {false,false});
+    MCProng prong(2, {2212, 3122}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
     signal = new MCSignal(name, "Proton from Lambda0 decays", {prong}, {-1});
     return signal;
   }
   if (!nameStr.compare("protonFromSigmaPlus")) {
-    MCProng prong(2, {2212, 3222}, {true, true}, {false, false}, {0,0}, {0,0}, {false,false});
+    MCProng prong(2, {2212, 3222}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
     signal = new MCSignal(name, "Proton from Sigma+ decays", {prong}, {-1});
     return signal;
   }
