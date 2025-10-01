@@ -5181,11 +5181,25 @@ void VarManager::FillDileptonHadronFemtoMC(T1 const& dilepton, T2 const& hadron,
     double Pinv = v12.M();
     double Q1 = ( dilepton.mass()*dilepton.mass() - hadronMass*hadronMass )/Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
-    // To do: calculate MC kstar
+
     if (fgUsedVars[kJpsiPMcWt]) {
+      // To do: calculate MC kstar
+      double mcmass1 = TDatabasePDG::Instance()->GetParticle(trackMc1.pdgCode())->Mass();
+      double mcmass2 = TDatabasePDG::Instance()->GetParticle(trackMc2.pdgCode())->Mass();
+      double mcmass3 = TDatabasePDG::Instance()->GetParticle(trackMc3.pdgCode())->Mass();
+      ROOT::Math::PtEtaPhiMVector mcl1(trackMc1.pt(), trackMc1.eta(), trackMc1.phi(), mcmass1);
+      ROOT::Math::PtEtaPhiMVector mcl2(trackMc2.pt(), trackMc2.eta(), trackMc2.phi(), mcmass2);
+      ROOT::Math::PtEtaPhiMVector mcv2(trackMc3.pt(), trackMc3.eta(), trackMc3.phi(), mcmass3);
+      ROOT::Math::PtEtaPhiMVector mcv1 = mcl1+mcl2;
+      ROOT::Math::PtEtaPhiMVector mcv12 = mcv1 + mcv2;
+      ROOT::Math::PtEtaPhiMVector mcv12_Qvect = mcv1 - mcv2;
+      double mcPinv = mcv12.M();
+      double mcQ1 = ( mcv1.M()*.mcv1.M() - mcmass3*mcmass3)/mcPinv;
+      double mcKstar = sqrt(mcQ1*mcQ1-mcv12_Qvect.M2())/2.0;
+
       values[kJpsiPMcWt] = 1.0; // for data and default
-      if (values[kDileptonHadronKstar]<0.4) { 
-        double ktemp = values[kDileptonHadronKstar]*1000.;
+      if (mcKstar<0.4) { 
+        double ktemp = mcKstar*1000.;
         values[kJpsiPMcWt] = 1 + (3.60909068e-15*pow(ktemp,6) - 2.38563569e-12*pow(ktemp,5) + 1.38579137e-10*pow(ktemp,4) + 2.18420805e-07*pow(ktemp,3) - 5.05551522e-05*pow(ktemp,2) + 5.19465359e-04*(ktemp) + 1.56103606 - 1) / (1 + exp((ktemp - 0.300)/0.005)); // for MC 
       }
     }
