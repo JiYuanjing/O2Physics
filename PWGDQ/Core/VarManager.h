@@ -826,6 +826,7 @@ class VarManager : public TObject
     kDeltaPhiSym,
     kNCorrelationVariables,
     kDileptonHadronKstar,
+    kJpsiPMcWt,
 
     // Dilepton-hadron femto variables
     // Yuanjing add 2024.12.22
@@ -5074,6 +5075,14 @@ void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float*
     double Pinv = v12.M();
     double Q1 = (dilepton.mass() * dilepton.mass() - hadronMass * hadronMass) / Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1 * Q1 - v12_Qvect.M2()) / 2.0;
+    if (fgUsedVars[kJpsiPMcWt]) {
+      values[kJpsiPMcWt] = 1.0; // for data and default
+      if (values[kDileptonHadronKstar]<0.3) { 
+        double ktemp = values[kDileptonHadronKstar]*1000.;
+        values[kJpsiPMcWt] = 1 + (3.60909068e-15*pow(ktemp,6) - 2.38563569e-12*pow(ktemp,5) + 1.38579137e-10*pow(ktemp,4) + 2.18420805e-07*pow(ktemp,3) - 5.05551522e-05*pow(ktemp,2) + 5.19465359e-04*(ktemp) + 1.56103606 - 1) / (1 + exp((ktemp - 0.300)/0.005)); // for MC 
+      }
+    }
+
   }
   if (fgUsedVars[kDeltaPhi]) {
     double delta = dilepton.phi() - hadron.phi();

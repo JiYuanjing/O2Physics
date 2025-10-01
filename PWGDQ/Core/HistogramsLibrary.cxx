@@ -824,6 +824,14 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
           hm->AddHistogram(histClass, "PtHigh_DCAz_fine", "p_{T} vs DCA_{z}", false, 200, 0.0, 20.0, VarManager::kPt, 1000, -0.05, 0.05, VarManager::kTrackDCAz);
         }
       }
+      if (subGroupStr.Contains("dca_femto")) { // Fine binning for femto
+        hm->AddHistogram(histClass, "DCAxy_femto", "DCA_{xy}", false, 1000, -0.2, 0.2, VarManager::kTrackDCAxy);
+        hm->AddHistogram(histClass, "DCAz_femto", "DCA_{z}", false, 1000, -0.2, 0.2, VarManager::kTrackDCAz);
+        hm->AddHistogram(histClass, "Pt_DCAxy_femto", "p_{T} vs DCA_{xy}", false, 200, 0.0, 4.0, VarManager::kPt, 1000, -0.2, 0.2, VarManager::kTrackDCAxy);
+        hm->AddHistogram(histClass, "Pt_DCAz_femto", "p_{T} vs DCA_{z}", false, 200, 0.0, 4.0, VarManager::kPt, 1000, -0.2, 0.2, VarManager::kTrackDCAz);
+        hm->AddHistogram(histClass, "P_DCAxy_femto", "p vs DCA_{xy}", false, 200, 0.0, 4.0, VarManager::kP, 1000, -0.2, 0.2, VarManager::kTrackDCAxy);
+        hm->AddHistogram(histClass, "P_DCAz_femto", "p vs DCA_{z}", false, 200, 0.0, 4.0, VarManager::kP, 1000, -0.2, 0.2, VarManager::kTrackDCAz);
+      }
     }
     if (subGroupStr.Contains("muon")) {
       if (!subGroupStr.Contains("ambiguity")) {
@@ -1935,6 +1943,10 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       // hm->AddHistogram(histClass, "HadronPtComSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, 0.0,3., VarManager::kTPCTOFnSigmaPr);
       hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassDileptonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kDileptonP);
       hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassProtonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kP);
+      if (subGroupStr.Contains("dilepton-hadron-femtoWt")) {
+        // add the weight for MC study 
+        hm->AddHistogram(histClass, "DileptonHadronKstar_DileptonMassWt", "", false, 150, 0.0, 3.0, VarManager::kDileptonHadronKstar, 100, 1.5, 4.5, VarManager::kPairMassDau, 0., 0., 0., VarManager::kNothing, "p-J/#{psi} k^{*} (GeV/c)","M(e^{+}e^{-}) (GeV/c^{2})", "", VarManager::kNothing,VarManager::kJpsiPMcWt);
+      }
     }
     if (subGroupStr.Contains("dilepton-hadron-femto")) {
       hm->AddHistogram(histClass, "DileptonHadronKstar_DileptonMass", "", false, 150, 0.0, 3.0, VarManager::kDileptonHadronKstar, 100, 1.5, 4.5, VarManager::kPairMassDau);
