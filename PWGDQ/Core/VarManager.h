@@ -1140,6 +1140,8 @@ class VarManager : public TObject
   //Femto: Yuanjing added Feb 1, 2025
   template <typename T1, typename T2>
   static void FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
+  template <typename T1, typename T2, typename TMC>
+  static void FillDileptonHadronFemtoMC(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f, TMC const& trackMc1, TMC const& trackMc2, TMC const& trackMc3);
   template <typename T1, typename T2>
   static void FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <typename T1, typename T2>
@@ -5075,13 +5077,6 @@ void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float*
     double Pinv = v12.M();
     double Q1 = (dilepton.mass() * dilepton.mass() - hadronMass * hadronMass) / Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1 * Q1 - v12_Qvect.M2()) / 2.0;
-    if (fgUsedVars[kJpsiPMcWt]) {
-      values[kJpsiPMcWt] = 1.0; // for data and default
-      if (values[kDileptonHadronKstar]<0.3) { 
-        double ktemp = values[kDileptonHadronKstar]*1000.;
-        values[kJpsiPMcWt] = 1 + (3.60909068e-15*pow(ktemp,6) - 2.38563569e-12*pow(ktemp,5) + 1.38579137e-10*pow(ktemp,4) + 2.18420805e-07*pow(ktemp,3) - 5.05551522e-05*pow(ktemp,2) + 5.19465359e-04*(ktemp) + 1.56103606 - 1) / (1 + exp((ktemp - 0.300)/0.005)); // for MC 
-      }
-    }
 
   }
   if (fgUsedVars[kDeltaPhi]) {
@@ -5159,6 +5154,69 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
     values[kDeltaEta] = dilepton.eta() - hadron.eta();
   }
 }
+
+template <typename T1, typename T2, typename TMC>
+void VarManager::FillDileptonHadronFemtoMC(T1 const& dilepton, T2 const& hadron, float* values, float hadronMass, TMC trackMc1, TMC trackMc2, TMC trackMc3)
+{
+  if (!values) {
+    values = fgValues;
+  }
+
+  if (fgUsedVars[kPairMass] || fgUsedVars[kPairPt] || fgUsedVars[kPairEta] || fgUsedVars[kPairPhi] || fgUsedVars[kPairMassDau] || fgUsedVars[kPairPtDau] || fgUsedVars[kDileptonHadronKstar] ) {
+    ROOT::Math::PtEtaPhiMVector v1(dilepton.pt(), dilepton.eta(), dilepton.phi(), dilepton.mass());
+    ROOT::Math::PtEtaPhiMVector v2(hadron.pt(), hadron.eta(), hadron.phi(), hadronMass);
+    ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+    values[kPairMass] = v12.M();
+    values[kPairPt] = v12.Pt();
+    values[kPairEta] = v12.Eta();
+    values[kPairPhi] = v12.Phi();
+    values[kPairMassDau] = dilepton.mass();
+    values[kPairPtDau] = dilepton.pt();
+    values[kDileptonP] = v1.P();
+    values[kMassDau] = hadronMass;
+    values[kDeltaMass] = v12.M() - dilepton.mass();
+
+    // Yuanjing Ji added Dec 22, 2024
+    ROOT::Math::PtEtaPhiMVector v12_Qvect = v1 - v2;
+    double Pinv = v12.M();
+    double Q1 = ( dilepton.mass()*dilepton.mass() - hadronMass*hadronMass )/Pinv;
+    values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
+    // To do: calculate MC kstar
+    if (fgUsedVars[kJpsiPMcWt]) {
+      values[kJpsiPMcWt] = 1.0; // for data and default
+      if (values[kDileptonHadronKstar]<0.4) { 
+        double ktemp = values[kDileptonHadronKstar]*1000.;
+        values[kJpsiPMcWt] = 1 + (3.60909068e-15*pow(ktemp,6) - 2.38563569e-12*pow(ktemp,5) + 1.38579137e-10*pow(ktemp,4) + 2.18420805e-07*pow(ktemp,3) - 5.05551522e-05*pow(ktemp,2) + 5.19465359e-04*(ktemp) + 1.56103606 - 1) / (1 + exp((ktemp - 0.300)/0.005)); // for MC 
+      }
+    }
+
+    // fill hadron info
+    values[kPt] = hadron.pt();
+    values[kP] = v2.P();
+    values[kCharge] = hadron.sign();
+  }
+  if (fgUsedVars[kDeltaPhi]) {
+    double delta = dilepton.phi() - hadron.phi();
+    if (delta > 3.0 / 2.0 * M_PI) {
+      delta -= 2.0 * M_PI;
+    }
+    if (delta < -0.5 * M_PI) {
+      delta += 2.0 * M_PI;
+    }
+    values[kDeltaPhi] = delta;
+  }
+  if (fgUsedVars[kDeltaPhiSym]) {
+    double delta = std::abs(dilepton.phi() - hadron.phi());
+    if (delta > M_PI) {
+      delta = 2 * M_PI - delta;
+    }
+    values[kDeltaPhiSym] = delta;
+  }
+  if (fgUsedVars[kDeltaEta]) {
+    values[kDeltaEta] = dilepton.eta() - hadron.eta();
+  }
+}
+
 
 template <typename T1, typename T2>
 void VarManager::FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 const& hadron, float* values, float hadronMass)

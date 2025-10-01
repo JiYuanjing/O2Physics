@@ -4051,10 +4051,12 @@ struct AnalysisDileptonTrack {
             continue;
           }
           // compute needed quantities
-          VarManager::FillDileptonHadronFemto(dilepton, track, fValuesHadron, 0.938);
+          // VarManager::FillDileptonHadronFemto(dilepton, track, fValuesHadron, 0.938);
           // VarManager::FillDileptonTrackVertexing<TCandidateType, TEventFillMap, TTrackFillMap>(event, lepton1, lepton2, track, fValuesHadron);
-
+          // add fill MC, used for weighting
           auto trackMC = track.reducedMCTrack();
+          VarManager::FillDileptonHadronFemtoMC(dilepton, track, fValuesHadron, 0.938, lepton1MC, lepton2MC, trackMC);  
+
           mcDecision = 0;
           isig = 0;
           for (auto sig = fRecMCSignals.begin(); sig != fRecMCSignals.end(); sig++, isig++) {
