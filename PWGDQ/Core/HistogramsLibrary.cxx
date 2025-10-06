@@ -1943,7 +1943,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       // hm->AddHistogram(histClass, "HadronPtComSigmaPr", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 150, 0.0,3., VarManager::kTPCTOFnSigmaPr);
       hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassDileptonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kDileptonP);
       hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassProtonP", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 10, 2.8,3.2, VarManager::kPairMassDau, 100, 0,5,VarManager::kP);
-      if (subGroupStr.Contains("dilepton-hadron-femtoWt")) {
+      if (subGroupStr.Contains("Wt")) {
         // add the weight for MC study 
         hm->AddHistogram(histClass, "DileptonHadronKstar_DileptonMassWt", "", false, 150, 0.0, 3.0, VarManager::kDileptonHadronKstar, 100, 1.5, 4.5, VarManager::kPairMassDau, 0., 0., 0., VarManager::kNothing, "p-J/#{psi} k^{*} (GeV/c)","M(e^{+}e^{-}) (GeV/c^{2})", "", VarManager::kNothing,VarManager::kJpsiPMcWt);
       }
