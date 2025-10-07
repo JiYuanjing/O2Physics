@@ -1894,8 +1894,24 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     return signal;
   }
 
-  // to do: add non prompt proton 
-  // source of non prompt proton, lambda, 
+  if (!nameStr.compare("eeFromPromptJpsiProtonAny")) {
+    // MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
+    MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false}, false, {503}, {true});
+    prongElectron.SetSourceBit(0, MCProng::kPhysicalPrimary);
+    MCProng prongProton(1, {2212}, {true}, {false}, {0}, {0}, {false});
+    signal = new MCSignal(name, "Electron pair from prompt Jpsi and proton", {prongElectron, prongElectron, prongProton}, {-1, -1, -1});
+    return signal;
+  }
+
+  if (!nameStr.compare("eeFromNonPromptJpsiProtonAny")) {
+    // MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
+    MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false}, false, {503}, {false});
+    prongElectron.SetSourceBit(0, MCProng::kPhysicalPrimary);
+    MCProng prongProton(1, {2212}, {true}, {false}, {0}, {0}, {false});
+    signal = new MCSignal(name, "Electron pair from non-prompt Jpsi and proton", {prongElectron, prongElectron, prongProton}, {-1, -1, -1});
+    return signal;
+  }
+
   return nullptr;
 }
 

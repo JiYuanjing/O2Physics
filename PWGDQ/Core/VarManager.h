@@ -5181,8 +5181,14 @@ void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& track
 
     values[kJpsiPMcWt] = 1.0; // for data and default
     if (mcKstar<0.4) { 
-      double ktemp = mcKstar*1000.;
-      values[kJpsiPMcWt] = 1 + (3.60909068e-15*pow(ktemp,6) - 2.38563569e-12*pow(ktemp,5) + 1.38579137e-10*pow(ktemp,4) + 2.18420805e-07*pow(ktemp,3) - 5.05551522e-05*pow(ktemp,2) + 5.19465359e-04*(ktemp) + 1.56103606 - 1) / (1 + exp((ktemp - 0.300)/0.005)); // for MC 
+      
+      double poly = (((((3609.09068*mcKstar -2385.63569)*mcKstar
+                    +138.579137)*mcKstar +218.420805)*mcKstar
+                    -50.5551522)*mcKstar +0.519465359)*mcKstar
+                    +1.56103606;
+     
+      double S = 1.0 / (1.0 + exp((mcKstar - 0.300)/0.005));
+      values[kJpsiPMcWt] = 1.0 + (poly - 1.0) * S; // for MC 
     }
   }
 }
