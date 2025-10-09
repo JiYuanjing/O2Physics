@@ -592,9 +592,11 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         hm->AddHistogram(histClass, "TPCnSigPr_occupancy", "TPC n-#sigma(p) vs. occupancy", false, 200, 0., 20000., VarManager::kTrackOccupancyInTimeRange, 100, -5.0, 5.0, VarManager::kTPCnSigmaPr);
         if (subGroupStr.Contains("tpcpid_femto")) {
           hm->AddHistogram(histClass, "TPCnSigPr_pIN_femto", "TPC n-#sigma(p) vs pIN", false, 100, 0.0, 5.0, VarManager::kPin, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
+          hm->AddHistogram(histClass, "TPCnSigPr_pt", "TPC n-#sigma(p) vs pt", false, 100, 0.0, 5.0, VarManager::kPt, 600, -12.0, 12.0, VarManager::kTPCnSigmaPr);
           hm->AddHistogram(histClass, "TPCTOFnSigPr_p", "TPC+TOF n-#sigma(p) vs p", false, 100, 0.0, 5.0, VarManager::kP, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
           hm->AddHistogram(histClass, "TPCTOFnSigPr_pIN", "TPC+TOF n-#sigma(p) vs pIN", false, 100, 0.0, 5.0, VarManager::kPin, 600, 0.0, 12.0, VarManager::kTPCTOFnSigmaPr);
           hm->AddHistogram(histClass, "TPCdedx_pIN_femto", "TPC dE/dx vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);
+          hm->AddHistogram(histClass, "TPCdedx_pt", "TPC dE/dx vs pIT", false, 100, 0.0, 10.0, VarManager::kPt, 200, 0.0, 200., VarManager::kTPCsignal);
         }
         if (subGroupStr.Contains("tpcpid_corr")) {
           hm->AddHistogram(histClass, "TPCnSigEl_Corr_pIN", "TPC n-#sigma(e) Corr. vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -5.0, 5.0, VarManager::kTPCnSigmaEl_Corr);
@@ -1946,6 +1948,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       // if (subGroupStr.Contains("Wt")) {
         // add the weight for MC study 
         hm->AddHistogram(histClass, "DileptonHadronKstarDileptonMassWt", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 200, 1.5, 4.5, VarManager::kPairMassDau, 0., 0., 0., VarManager::kNothing, "p-J/#{psi} k^{*} (GeV/c)","M(e^{+}e^{-}) (GeV/c^{2})", "", VarManager::kNothing,VarManager::kJpsiPMcWt);
+        hm->AddHistogram(histClass, "Kstar_MCKstar", "", false, 600, 0.0, 3.0, VarManager::kDileptonHadronKstar, 600, 0.0, 3.0, VarManager::kJpsiPMcKstar);
       // }
     }
     if (subGroupStr.Contains("dilepton-hadron-femto")) {

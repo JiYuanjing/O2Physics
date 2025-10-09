@@ -827,6 +827,7 @@ class VarManager : public TObject
     kNCorrelationVariables,
     kDileptonHadronKstar,
     kJpsiPMcWt,
+    kJpsiPMcKstar,
 
     // Dilepton-hadron femto variables
     // Yuanjing add 2024.12.22
@@ -5162,7 +5163,7 @@ void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& track
     values = fgValues;
   }
 
-  if (fgUsedVars[kJpsiPMcWt]) {
+  if (fgUsedVars[kJpsiPMcWt] || fgUsedVars[kJpsiPMcKstar]) {
     // double mcmass1 = TDatabasePDG::Instance()->GetParticle(trackMc1.pdgCode())->Mass();
     // double mcmass2 = TDatabasePDG::Instance()->GetParticle(trackMc2.pdgCode())->Mass();
     double mcmass1 = o2::constants::physics::MassElectron;
@@ -5178,6 +5179,7 @@ void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& track
     double mcPinv = mcv12.M();
     double mcQ1 = ( mcv1.M()*mcv1.M() - mcmass3*mcmass3)/mcPinv;
     double mcKstar = sqrt(mcQ1*mcQ1-mcv12_Qvect.M2())/2.0;
+    values[kJpsiPMcKstar] = mcKstar;
 
     values[kJpsiPMcWt] = 1.0; // for data and default
     if (mcKstar<0.4) { 
