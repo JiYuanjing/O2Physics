@@ -36,15 +36,16 @@
 
 #include "Common/CCDB/TriggerAliases.h"
 #include "Common/Core/TableHelper.h"
+#include "Common/Core/Zorro.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/CollisionAssociationTables.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/FwdTrackReAlignTables.h"
 #include "Common/DataModel/MftmchMatchingML.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 #include "Common/DataModel/TrackSelectionTables.h"
-#include "EventFiltering/Zorro.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -329,6 +330,10 @@ struct TableMaker {
   Preslice<MyBarrelTracksWithCovNoTOF> presliceWithCovNoTOF = aod::track::collisionId;
   Partition<MyBarrelTracksWithCovNoTOF> tracksPosWithCovNoTOF = (((aod::track::flags & static_cast<uint32_t>(o2::aod::track::PVContributor)) == static_cast<uint32_t>(o2::aod::track::PVContributor)) && (aod::track::tgl > static_cast<float>(0.05)));
   Partition<MyBarrelTracksWithCovNoTOF> tracksNegWithCovNoTOF = (((aod::track::flags & static_cast<uint32_t>(o2::aod::track::PVContributor)) == static_cast<uint32_t>(o2::aod::track::PVContributor)) && (aod::track::tgl < static_cast<float>(-0.05)));
+
+  Preslice<MyBarrelTracksWithCov> presliceWithCov = aod::track::collisionId;
+  Partition<MyBarrelTracksWithCov> tracksPosWithCov = (((aod::track::flags & static_cast<uint32_t>(o2::aod::track::PVContributor)) == static_cast<uint32_t>(o2::aod::track::PVContributor)) && (aod::track::tgl > static_cast<float>(0.05)));
+  Partition<MyBarrelTracksWithCov> tracksNegWithCov = (((aod::track::flags & static_cast<uint32_t>(o2::aod::track::PVContributor)) == static_cast<uint32_t>(o2::aod::track::PVContributor)) && (aod::track::tgl < static_cast<float>(-0.05)));
 
   struct {
     std::map<int32_t, float> oMeanTimeShortA;
@@ -787,7 +792,7 @@ struct TableMaker {
   }
 
   template <uint32_t TEventFillMap, uint32_t TTrackFillMap, typename TEvents, typename TBCs, typename TZdcs, typename TTrackAssoc, typename TTracks>
-  void skimCollisions(TEvents const& collisions, TBCs const& /*bcs*/, TZdcs const& /*zdcs*/,
+  void skimCollisions(TEvents const& collisions, TBCs const& bcs, TZdcs const& /*zdcs*/,
                       TTrackAssoc const& trackAssocs, TTracks const& tracks)
   {
     // Skim collisions
@@ -820,7 +825,7 @@ struct TableMaker {
       (reinterpret_cast<TH2D*>(fStatsList->At(kStatsEvent)))->Fill(1.0, static_cast<float>(o2::aod::evsel::kNsel));
 
       // apply the event filter computed by filter-PP
-      if constexpr ((TEventFillMap & VarManager::ObjTypes::EventFilter) > 0 || (TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
+      if constexpr ((TEventFillMap & VarManager::ObjTypes::EventFilter) > 0) {
         if (!collision.eventFilter()) {
           continue;
         }
@@ -835,8 +840,8 @@ struct TableMaker {
       if (bcEvSel.globalIndex() != bc.globalIndex()) {
         tag |= (static_cast<uint64_t>(1) << 0);
       }
-      // Put the 8 first bits of the event filter in the last 8 bits of the tag
-      if constexpr ((TEventFillMap & VarManager::ObjTypes::EventFilter) > 0 || (TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
+      // Put the 8 first bits of the rapidity gap filter in the last 8 bits of the tag
+      if constexpr ((TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
         tag |= (collision.eventFilter() << 56);
       }
 
@@ -845,8 +850,12 @@ struct TableMaker {
       VarManager::FillEvent<TEventFillMap>(collision); // extract event information and place it in the fValues array
       if constexpr ((TEventFillMap & VarManager::ObjTypes::Zdc) > 0) {
         if constexpr ((TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
-          // Collision table already has ZDC info
-          VarManager::FillZDC(collision);
+          // The DQRapidityGapFilter contains the index of the bc we want to get ZDC info from
+          auto newbc = bcs.rawIteratorAt(collision.newBcIndex());
+          if (newbc.has_zdc()) {
+            auto newbc_zdc = newbc.zdc();
+            VarManager::FillZDC(newbc_zdc);
+          }
         } else if (bcEvSel.has_zdc()) {
           auto bc_zdc = bcEvSel.zdc();
           VarManager::FillZDC(bc_zdc);
@@ -888,11 +897,16 @@ struct TableMaker {
         zorro.setBCtolerance(fConfigZorro.fBcTolerance);
         zorro.initCCDB(fCCDB.service, fCurrentRun, bc.timestamp(), fConfigZorro.fConfigZorroTrigMask.value);
         zorro.populateExternalHists(fCurrentRun, reinterpret_cast<TH2D*>(fStatsList->At(kStatsZorroInfo)), reinterpret_cast<TH2D*>(fStatsList->At(kStatsZorroSel)));
+
+        if (!fEventCut->IsSelected(VarManager::fgValues)) {
+          continue;
+        }
+
         bool zorroSel = zorro.isSelected(bc.globalBC(), fConfigZorro.fBcTolerance, reinterpret_cast<TH2D*>(fStatsList->At(kStatsZorroSel)));
         if (zorroSel) {
           tag |= (static_cast<uint64_t>(true) << 56); // the same bit is used for this zorro selections from ccdb
         }
-        if (fConfigZorro.fConfigRunZorroSel && (!zorroSel || !fEventCut->IsSelected(VarManager::fgValues))) {
+        if (fConfigZorro.fConfigRunZorroSel && (!zorroSel)) {
           continue;
         }
       } else {
@@ -920,20 +934,11 @@ struct TableMaker {
         multZNC = collision.multZNC();
         multTracklets = collision.multTracklets();
         multTracksPV = collision.multNTracksPV();
-        if constexpr ((TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
-          // Use the FIT signals from the nearest BC with FIT amplitude above threshold
-          multFV0A = collision.newBcMultFV0A();
-          multFT0A = collision.newBcMultFT0A();
-          multFT0C = collision.newBcMultFT0C();
-          multFDDA = collision.newBcMultFDDA();
-          multFDDC = collision.newBcMultFDDC();
-        } else {
-          multFV0A = collision.multFV0A();
-          multFT0A = collision.multFT0A();
-          multFT0C = collision.multFT0C();
-          multFDDA = collision.multFDDA();
-          multFDDC = collision.multFDDC();
-        }
+        multFV0A = collision.multFV0A();
+        multFT0A = collision.multFT0A();
+        multFT0C = collision.multFT0C();
+        multFDDA = collision.multFDDA();
+        multFDDC = collision.multFDDC();
       }
       if constexpr ((TEventFillMap & VarManager::ObjTypes::CollisionCent) > 0) {
         centFT0C = collision.centFT0C();
@@ -946,9 +951,15 @@ struct TableMaker {
       eventInfo(collision.globalIndex());
       if constexpr ((TEventFillMap & VarManager::ObjTypes::Zdc) > 0) {
         if constexpr ((TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
-          // ZDC information is already in the DQRapidityGapFilter
-          zdc(collision.energyCommonZNA(), collision.energyCommonZNC(), collision.energyCommonZPA(), collision.energyCommonZPC(),
-              collision.timeZNA(), collision.timeZNC(), collision.timeZPA(), collision.timeZPC());
+          // The DQRapidityGapFilter contains the index of the bc we want to get ZDC info from
+          auto newbc = bcs.rawIteratorAt(collision.newBcIndex());
+          if (newbc.has_zdc()) {
+            auto newbc_zdc = newbc.zdc();
+            zdc(newbc_zdc.energyCommonZNA(), newbc_zdc.energyCommonZNC(), newbc_zdc.energyCommonZPA(), newbc_zdc.energyCommonZPC(),
+                newbc_zdc.timeZNA(), newbc_zdc.timeZNC(), newbc_zdc.timeZPA(), newbc_zdc.timeZPC());
+          } else {
+            zdc(-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0);
+          }
         } else if (bcEvSel.has_zdc()) {
           auto bc_zdc = bcEvSel.zdc();
           zdc(bc_zdc.energyCommonZNA(), bc_zdc.energyCommonZNC(), bc_zdc.energyCommonZPA(), bc_zdc.energyCommonZPC(),
@@ -1193,12 +1204,16 @@ struct TableMaker {
       if (static_cast<int>(muon.trackType()) < 2) {
         auto muonID = muon.matchMCHTrackId();
         auto muontrack = muon.template matchMCHTrack_as<TMuons>();
-        auto muonprop = VarManager::PropagateMuon(muontrack, collision, VarManager::kToMatching);
         auto mfttrack = muon.template matchMFTTrack_as<TMFTTracks>();
         auto const& mfttrackcov = mfCovs.rawIteratorAt(map_mfttrackcovs[mfttrack.globalIndex()]);
-        o2::track::TrackParCovFwd mftprop = VarManager::PropagateFwd(mfttrack, mfttrackcov, VarManager::GetMatchingPlane());
+        o2::track::TrackParCovFwd mftprop = VarManager::FwdToTrackPar(mfttrack, mfttrackcov);
+        o2::dataformats::GlobalFwdTrack muonprop = VarManager::FwdToTrackPar(muontrack, muontrack);
+        if (fConfigVariousOptions.fzMatching.value < 0.) {
+          mftprop = VarManager::PropagateFwd(mfttrack, mfttrackcov, fConfigVariousOptions.fzMatching.value);
+          muonprop = VarManager::PropagateMuon(muontrack, collision, VarManager::kToMatching);
+        }
         std::vector<float> output;
-        std::vector<float> inputML = matchingMlResponse.getInputFeaturesGlob(muon, muonprop, mftprop, mfttrackcov, collision);
+        std::vector<float> inputML = matchingMlResponse.getInputFeaturesGlob(muon, muonprop, mftprop, collision);
         matchingMlResponse.isSelectedMl(inputML, 0, output);
         float score = output[0];
         if (mCandidates.find(muonID) == mCandidates.end()) {
@@ -1640,6 +1655,7 @@ struct TableMaker {
                                        MyBarrelTracksWithCov const& tracksBarrel,
                                        TrackAssoc const& trackAssocs)
   {
+    computeOccupancyEstimators(collisions, tracksPosWithCov, tracksNegWithCov, presliceWithCov, bcs);
     fullSkimming<gkEventFillMapWithMultsRapidityGapFilterZdc, gkTrackFillMapWithCov, 0u, 0u>(collisions, bcs, zdcs, tracksBarrel, nullptr, nullptr, trackAssocs, nullptr, nullptr, nullptr);
   }
 

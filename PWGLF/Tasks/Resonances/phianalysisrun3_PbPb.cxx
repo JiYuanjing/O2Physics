@@ -72,6 +72,7 @@ struct phianalysisrun3_PbPb {
   } rctCut;
   RCTFlagsChecker rctChecker;
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry registry{"registry"};
   // events
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   // track
@@ -113,14 +114,16 @@ struct phianalysisrun3_PbPb {
   Configurable<float> confMaxRot{"confMaxRot", 7.0f * 3.14159265f / 6.0f, "Maximum of rotation"};
   Configurable<bool> pdgcheck{"pdgcheck", true, "pdgcheck"};
   Configurable<bool> reco{"reco", true, "reco"};
+  Configurable<bool> cfgDoSel8{"cfgDoSel8", true, "Apply sel8 selection"};
   ConfigurableAxis ptAxisphi{"ptAxisphi", {200, 0.0f, 20.0f}, "phi pT axis"};
   ConfigurableAxis centAxisphi{"centAxisphi", {200, 0.0, 200.0}, "phi centrality axis"};
   ConfigurableAxis massAxisphi{"massAxisphi", {200, 0.9, 1.1}, "phi mass axis"};
-
+  ConfigurableAxis axisNch{"axisNch", {100, 0.0f, 100.0f}, "Number of charged particles in |y| < 0.5"};
   ConfigurableAxis binsImpactPar{"binsImpactPar", {VARIABLE_WIDTH, 0, 3.5, 5.67, 7.45, 8.85, 10.0, 11.21, 12.26, 13.28, 14.23, 15.27}, "Binning of the impact parameter axis"};
   ConfigurableAxis binsPt{"binsPt", {VARIABLE_WIDTH, 0.0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0}, "Binning of the pT axis"};
   ConfigurableAxis binsCent{"binsCent", {VARIABLE_WIDTH, 0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0}, "Binning of the centrality axis"};
-  Configurable<int> cfgCutOccupancy{"cfgCutOccupancy", 3000, "Occupancy cut"};
+  Configurable<int> cfgMinOccupancy{"cfgMinOccupancy", 0, "Minimum occupancy cut"};
+  Configurable<int> cfgMaxOccupancy{"cfgMaxOccupancy", 3000, "Maximum occupancy cut"};
   Configurable<int> centestimator{"centestimator", 0, "Select multiplicity estimator: 0 - FT0C, 1 - FT0A, 2 - FT0M, 3 - FV0A, 4 - PVTracks"};
 
   Configurable<bool> genacceptancecut{"genacceptancecut", true, "use acceptance cut for generated"};
@@ -242,6 +245,16 @@ struct phianalysisrun3_PbPb {
       histos.add("TPC_Nsigma1_MC", "TPC NSigma for Kaon;#it{p}_{T} (GeV/#it{c});#sigma_{TPC}^{Kaon};", {HistType::kTH3D, {{200, -12, 12}, centAxisphi, ptAxisphi}});
       histos.add("trkDCAxy", "DCAxy distribution of positive kaon track candidates", HistType::kTH3F, {{150, -1.0f, 1.0f}, centAxisphi, ptAxisphi});
       histos.add("trkDCAz", "DCAxy distribution of negative kaon track candidates", HistType::kTH3F, {{150, -1.0f, 1.0f}, centAxisphi, ptAxisphi});
+      registry.add("Factors/hCentralityVsMultMC", "Event centrality vs MC multiplicity", kTH2F, {{101, 0.0f, 101.0f}, axisNch});
+      registry.add("Factors/hEventCentrality", "Event centrality", kTH1F, {{101, 0, 101}});
+      registry.add("Factors/hNrecInGen", "Number of collisions in MC", kTH1F, {{4, -0.5, 3.5}});
+      registry.add("Factors/hGenEvents", "Generated events", HistType::kTH2F, {{axisNch}, {4, 0, 4}});
+      auto hGenEvents = registry.get<TH2>(HIST("Factors/hGenEvents"));
+      hGenEvents->GetYaxis()->SetBinLabel(1, "All generated events");
+      hGenEvents->GetYaxis()->SetBinLabel(2, "Generated events with Mc collision V_{z} cut");
+      hGenEvents->GetYaxis()->SetBinLabel(3, "Generated events with at least one reconstructed event");
+      registry.add("Factors/h2dGenPhi", "Centrality vs p_{T}", kTH2D, {{101, 0.0f, 101.0f}, ptAxisphi});
+      registry.add("Factors/h3dGenPhiVsMultMCVsCentrality", "MC multiplicity vs centrality vs p_{T}", kTH3D, {axisNch, {101, 0.0f, 101.0f}, ptAxisphi});
       if (doprocessEvtLossSigLossMC) {
         histos.add("QAevent/hImpactParameterGen", "Impact parameter of generated MC events", kTH1F, {impactParAxis});
         histos.add("QAevent/hImpactParameterRec", "Impact parameter of selected MC events", kTH1F, {impactParAxis});
@@ -256,6 +269,7 @@ struct phianalysisrun3_PbPb {
   double rapidity;
   double genMass, recMass, resolution;
   ROOT::Math::PxPyPzMVector phiMother, daughter1, daughter2;
+  ROOT::Math::PxPyPzMVector d1, d2, mother;
   double mass{0.};
   double massrotation{0.};
   double pT{0.};
@@ -346,7 +360,7 @@ struct phianalysisrun3_PbPb {
     if (additionalEvSel6 && !collision.selection_bit(o2::aod::evsel::kIsGoodZvtxFT0vsPV))
       return false;
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy))
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy))
       return false;
 
     return true;
@@ -407,7 +421,7 @@ struct phianalysisrun3_PbPb {
   Filter acceptanceFilter = (nabs(aod::track::eta) < cfgCutEta && nabs(aod::track::pt) > cfgCutPT);
   Filter dcacutFilter = (nabs(aod::track::dcaXY) < cfgCutDCAxy) && (nabs(aod::track::dcaZ) < cfgCutDCAz);
 
-  using EventCandidates = soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::FT0Mults, aod::MultZeqs, aod::CentFT0Ms, aod::CentFT0As, aod::CentFT0Cs, aod::CentFV0As>>;
+  using EventCandidates = soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::FT0Mults, aod::MultZeqs, aod::CentFT0Ms, aod::CentFT0As, aod::CentFT0Cs, aod::CentFV0As, aod::Mults, aod::PVMults>>;
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection, aod::pidTPCFullKa, aod::pidTOFFullKa, aod::pidTOFbeta>>;
 
   // using EventCandidatesMC = soa::Join<aod::Collisions, aod::EvSels, aod::FT0Mults, aod::MultZeqs, aod::McCollisionLabels>;
@@ -420,6 +434,8 @@ struct phianalysisrun3_PbPb {
   using CollisionMCRecTableCentFT0C = soa::SmallGroups<soa::Join<aod::McCollisionLabels, aod::Collisions, aod::CentFT0Cs, aod::EvSels, aod::CentFT0Ms, aod::CentFT0As, aod::CentFV0As>>;
   using TrackMCRecTable = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::McTrackLabels, aod::TrackSelection, aod::pidTPCFullKa, aod::pidTOFFullKa, aod::pidTOFbeta>;
   using FilTrackMCRecTable = soa::Filtered<TrackMCRecTable>;
+  using McCollisionMults = soa::Join<aod::McCollisions, aod::MultMCExtras>;
+  using LabeledTracks = soa::Join<aod::Tracks, aod::McTrackLabels>;
 
   ConfigurableAxis axisVertex{"axisVertex", {20, -10, 10}, "vertex axis for bin"};
   ConfigurableAxis axisMultiplicity{"axisMultiplicity", {2000, 0, 10000}, "multiplicity  for bin"};
@@ -469,7 +485,7 @@ struct phianalysisrun3_PbPb {
     }
     histos.fill(HIST("hEvtSelInfo"), 8.5);
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
       return;
     }
     histos.fill(HIST("hEvtSelInfo"), 9.5);
@@ -626,7 +642,9 @@ struct phianalysisrun3_PbPb {
       int occupancy1 = c1.trackOccupancyInTimeRange();
       int occupancy2 = c2.trackOccupancyInTimeRange();
 
-      if (fillOccupancy && (occupancy1 > cfgCutOccupancy || occupancy2 > cfgCutOccupancy)) {
+      if (fillOccupancy &&
+          ((occupancy1 < cfgMinOccupancy || occupancy1 > cfgMaxOccupancy) ||
+           (occupancy2 < cfgMinOccupancy || occupancy2 > cfgMaxOccupancy))) {
         continue;
       }
       float multiplicity;
@@ -695,7 +713,9 @@ struct phianalysisrun3_PbPb {
       int occupancy1 = c1.trackOccupancyInTimeRange();
       int occupancy2 = c2.trackOccupancyInTimeRange();
 
-      if (fillOccupancy && (occupancy1 > cfgCutOccupancy || occupancy2 > cfgCutOccupancy)) {
+      if (fillOccupancy &&
+          ((occupancy1 < cfgMinOccupancy || occupancy1 > cfgMaxOccupancy) ||
+           (occupancy2 < cfgMinOccupancy || occupancy2 > cfgMaxOccupancy))) {
         continue;
       }
       float multiplicity;
@@ -765,7 +785,9 @@ struct phianalysisrun3_PbPb {
       int occupancy1 = c1.trackOccupancyInTimeRange();
       int occupancy2 = c2.trackOccupancyInTimeRange();
 
-      if (fillOccupancy && (occupancy1 > cfgCutOccupancy || occupancy2 > cfgCutOccupancy)) {
+      if (fillOccupancy &&
+          ((occupancy1 < cfgMinOccupancy || occupancy1 > cfgMaxOccupancy) ||
+           (occupancy2 < cfgMinOccupancy || occupancy2 > cfgMaxOccupancy))) {
         continue;
       }
       float multiplicity;
@@ -835,7 +857,9 @@ struct phianalysisrun3_PbPb {
       int occupancy1 = c1.trackOccupancyInTimeRange();
       int occupancy2 = c2.trackOccupancyInTimeRange();
 
-      if (fillOccupancy && (occupancy1 > cfgCutOccupancy || occupancy2 > cfgCutOccupancy)) {
+      if (fillOccupancy &&
+          ((occupancy1 < cfgMinOccupancy || occupancy1 > cfgMaxOccupancy) ||
+           (occupancy2 < cfgMinOccupancy || occupancy2 > cfgMaxOccupancy))) {
         continue;
       }
       float multiplicity;
@@ -877,7 +901,7 @@ struct phianalysisrun3_PbPb {
       return;
     }
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
       return;
     }
     float multiplicity{-1};
@@ -964,9 +988,13 @@ struct phianalysisrun3_PbPb {
     }
     for (const auto& RecCollision : RecCollisions) {
       histos.fill(HIST("hMC"), 3);
-      if (!RecCollision.sel8() || std::abs(RecCollision.posZ()) > cfgCutVertex) {
+      if (cfgDoSel8 && !RecCollision.sel8()) {
         continue;
       }
+      if (std::abs(RecCollision.posZ()) > cfgCutVertex) {
+        continue;
+      }
+
       histos.fill(HIST("hMC"), 4);
       if (additionalEvSel1 && !RecCollision.selection_bit(aod::evsel::kNoTimeFrameBorder)) {
         continue;
@@ -993,7 +1021,7 @@ struct phianalysisrun3_PbPb {
       }
       histos.fill(HIST("hMC"), 10);
       int occupancy = RecCollision.trackOccupancyInTimeRange();
-      if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+      if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
         continue;
       }
       histos.fill(HIST("hMC"), 11);
@@ -1173,14 +1201,18 @@ struct phianalysisrun3_PbPb {
     int nevts = 0;
     auto multiplicity = 0;
     for (const auto& collision : collisions) {
-      if (!collision.sel8() || std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
+      if (cfgDoSel8 && !collision.sel8()) {
         continue;
       }
+      if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
+        continue;
+      }
+
       if (additionalEvSel2 && (!collision.selection_bit(aod::evsel::kNoSameBunchPileup) || !collision.selection_bit(aod::evsel::kIsGoodZvtxFT0vsPV))) {
         continue;
       }
       int occupancy = collision.trackOccupancyInTimeRange();
-      if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+      if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
         continue;
       }
       histos.fill(HIST("hOccupancy1"), occupancy);
@@ -1249,14 +1281,18 @@ struct phianalysisrun3_PbPb {
     if (!collision.has_mcCollision()) {
       return;
     }
-    if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex || !collision.sel8()) {
+    if (cfgDoSel8 && !collision.sel8()) {
       return;
     }
+    if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
+      return;
+    }
+
     if (additionalEvSel2 && (!collision.selection_bit(aod::evsel::kNoSameBunchPileup) || !collision.selection_bit(aod::evsel::kIsGoodZvtxFT0vsPV))) {
       return;
     }
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
       return;
     }
     auto multiplicity = collision.centFT0C();
@@ -1393,7 +1429,7 @@ struct phianalysisrun3_PbPb {
       return;
     }
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
       return;
     }
     float multiplicity{-1};
@@ -1515,12 +1551,13 @@ struct phianalysisrun3_PbPb {
       }
       int occupancy1 = c1.trackOccupancyInTimeRange();
       int occupancy2 = c2.trackOccupancyInTimeRange();
-      if (fillOccupancy && (occupancy1 > cfgCutOccupancy)) {
+      if (fillOccupancy && (occupancy1 < cfgMinOccupancy || occupancy1 > cfgMaxOccupancy)) {
         continue;
       }
-      if (fillOccupancy && (occupancy2 > cfgCutOccupancy)) {
+      if (fillOccupancy && (occupancy2 < cfgMinOccupancy || occupancy2 > cfgMaxOccupancy)) {
         continue;
       }
+
       auto multiplicity = c1.centFT0C();
       histos.fill(HIST("Centmix"), multiplicity);
       for (const auto& [t1, t2] : o2::soa::combinations(o2::soa::CombinationsFullIndexPolicy(tracks1, tracks2))) {
@@ -1574,11 +1611,15 @@ struct phianalysisrun3_PbPb {
     std::vector<int64_t> selectedEvents(collisions.size());
     int nevts = 0;
     auto multiplicity = -1.0;
-    histos.fill(HIST("hMC1"), 2.5);
     for (const auto& collision : collisions) {
-      if (!collision.sel8() || std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
+      histos.fill(HIST("hMC1"), 2.5);
+      if (cfgDoSel8 && !collision.sel8()) {
         continue;
       }
+      if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
+        continue;
+      }
+
       histos.fill(HIST("hMC1"), 3.5);
       if (additionalEvSel1 && !collision.selection_bit(aod::evsel::kNoTimeFrameBorder)) {
         continue;
@@ -1605,7 +1646,7 @@ struct phianalysisrun3_PbPb {
       }
       histos.fill(HIST("hMC1"), 9.5);
       int occupancy = collision.trackOccupancyInTimeRange();
-      if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+      if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
         continue;
       }
       histos.fill(HIST("hMC1"), 10.5);
@@ -1674,7 +1715,10 @@ struct phianalysisrun3_PbPb {
     if (!collision.has_mcCollision()) {
       return;
     }
-    if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex || !collision.sel8()) {
+    if (cfgDoSel8 && !collision.sel8()) {
+      return;
+    }
+    if (std::abs(collision.mcCollision().posZ()) > cfgCutVertex) {
       return;
     }
     if (additionalEvSel1 && !collision.selection_bit(aod::evsel::kNoTimeFrameBorder)) {
@@ -1699,7 +1743,7 @@ struct phianalysisrun3_PbPb {
       return;
     }
     int occupancy = collision.trackOccupancyInTimeRange();
-    if (fillOccupancy && (occupancy > cfgCutOccupancy)) {
+    if (fillOccupancy && (occupancy < cfgMinOccupancy || occupancy > cfgMaxOccupancy)) {
       return;
     }
     const int kCentFT0C = 0;
@@ -1849,6 +1893,62 @@ struct phianalysisrun3_PbPb {
     } // end loop on gen particles
   }
   PROCESS_SWITCH(phianalysisrun3_PbPb, processEvtLossSigLossMC, "Process Signal Loss, Event Loss", false);
+  void processFactors(McCollisionMults::iterator const& mcCollision, soa::SmallGroups<EventCandidatesMC> const& collisions, LabeledTracks const& /*particles*/, aod::McParticles const& mcParticles)
+  {
+    registry.fill(HIST("Factors/hGenEvents"), mcCollision.multMCNParticlesEta08(), 0.5);
+
+    if (std::abs(mcCollision.posZ()) > cfgCutVertex)
+      return;
+
+    registry.fill(HIST("Factors/hGenEvents"), mcCollision.multMCNParticlesEta08(), 1.5);
+
+    float centrality = 100.5f;
+    for (auto const& collision : collisions) {
+      centrality = collision.centFT0M();
+    }
+
+    registry.fill(HIST("Factors/hCentralityVsMultMC"), centrality, mcCollision.multMCNParticlesEta08());
+    registry.fill(HIST("Factors/hNrecInGen"), collisions.size());
+
+    for (const auto& particle : mcParticles) {
+
+      if (std::abs(particle.y()) > 0.5)
+        continue;
+
+      if (particle.pdgCode() == 333) {
+        int dauSize = 2;
+        auto daughters = particle.daughters_as<aod::McParticles>();
+        if (daughters.size() != dauSize)
+          continue;
+
+        auto daup = false;
+        auto daun = false;
+
+        for (const auto& dau : daughters) {
+          if (dau.pdgCode() == 321) {
+            daup = true;
+            d1 = ROOT::Math::PxPyPzMVector(dau.px(), dau.py(), dau.pz(), massKa);
+          } else if (dau.pdgCode() == -321) {
+            daun = true;
+            d2 = ROOT::Math::PxPyPzMVector(dau.px(), dau.py(), dau.pz(), massKa);
+          }
+        }
+        if (!daup || !daun)
+          continue;
+
+        mother = d1 + d2;
+
+        registry.fill(HIST("Factors/h2dGenPhi"), centrality, mother.Pt());
+        registry.fill(HIST("Factors/h3dGenPhiVsMultMCVsCentrality"), mcCollision.multMCNParticlesEta08(), centrality, mother.Pt());
+      }
+    }
+
+    if (collisions.size() == 0)
+      return;
+
+    registry.fill(HIST("Factors/hGenEvents"), mcCollision.multMCNParticlesEta08(), 2.5);
+  }
+  PROCESS_SWITCH(phianalysisrun3_PbPb, processFactors, "Process Signal Loss, Event Loss", false);
 };
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {

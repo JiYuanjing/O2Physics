@@ -20,13 +20,13 @@
 
 #include "Common/Core/RecoDecay.h"
 #include "Common/Core/TrackSelection.h"
+#include "Common/Core/Zorro.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 #include "Common/DataModel/TrackSelectionTables.h"
-#include "EventFiltering/Zorro.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/ASoAHelpers.h"
@@ -502,9 +502,14 @@ struct CascadeSelector {
 
   } // processCandidate
 
-  void processGenMC(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::McCollisionLabels, MyCollisions>> const& collisions, aod::McParticles const& mcParticles)
+  void processGenMC(aod::McCollision const& mcCollision, soa::SmallGroups<soa::Join<aod::McCollisionLabels, MyCollisions>> const& collisions, aod::McParticles const& mcParticles)
   {
-    // N gen events without any event selection or matched reco event
+    // evsel
+    if (INEL >= 0 && !pwglf::isINELgtNmc(mcParticles, INEL, pdgDB))
+      return;
+    if (std::abs(mcCollision.posZ()) > maxVertexZ)
+      return;
+
     registry.fill(HIST("gen/hNevents"), 0);
 
     for (auto const& mcPart : mcParticles) {

@@ -22,14 +22,15 @@
 #include "PWGCF/FemtoDream/Core/femtoDreamV0SelectionK0Short.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
 
+#include "Common/Core/Zorro.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/PIDResponseITS.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 #include "Common/DataModel/TrackSelectionTables.h"
-#include "EventFiltering/Zorro.h"
 
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -185,22 +186,74 @@ struct FemtoDreamProducerTaskReso {
   Configurable<float> confV0InvKaonMassUpLimit{"confV0InvKaonMassUpLimit", 0.515, "Upper limit of the V0 invariant mass for Kaon rejection"};
   Configurable<bool> confV0MotherIsLambda{"confV0MotherIsLambda", true, "True: Lambda, False: K0Short"};
 
-  Configurable<std::vector<float>> confChildCharge{"confChildCharge", std::vector<float>{-1, 1}, "V0 Child sel: Charge"};
+  Configurable<std::vector<float>> confChildSign{"confChildSign", std::vector<float>{-1, 1}, "V0 Child sel: Charge"};
   Configurable<std::vector<float>> confChildEtaMax{"confChildEtaMax", std::vector<float>{0.8f}, "V0 Child sel: max eta"};
   Configurable<std::vector<float>> confChildTPCnClsMin{"confChildTPCnClsMin", std::vector<float>{80.f, 70.f, 60.f}, "V0 Child sel: Min. nCls TPC"};
   Configurable<std::vector<float>> confChildDCAMin{"confChildDCAMin", std::vector<float>{0.05f, 0.06f}, "V0 Child sel:  Max. DCA Daugh to PV (cm)"};
   Configurable<std::vector<float>> confChildPIDnSigmaMax{"confChildPIDnSigmaMax", std::vector<float>{5.f, 4.f}, "V0 Child sel: Max. PID nSigma TPC"};
   Configurable<std::vector<int>> confChildPIDspecies{"confChildPIDspecies", std::vector<int>{o2::track::PID::Pion, o2::track::PID::Proton}, "V0 Child sel: Particles species for PID"};
 
+  FemtoDreamCascadeSelection cascadeCuts;
+  struct : o2::framework::ConfigurableGroup {
+    Configurable<float> confCascInvMassLowLimit{"confCascInvMassLowLimit", 1.2, "Lower limit of the Cascade invariant mass"};
+    Configurable<float> confCascInvMassUpLimit{"confCascInvMassUpLimit", 1.5, "Upper limit of the Cascade invariant mass"};
+    Configurable<bool> confCascIsSelectedOmega{"confCascIsSelectedOmega", false, "Select Omegas instead of Xis (invariant mass)"};
+    // Cascade
+    Configurable<std::vector<float>> confCascadeSign{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeSign, "confCascade"), std::vector<float>{-1, 1}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeSign, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadePtMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadePtMin, "confCascade"), std::vector<float>{0.3f, 0.4f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadePtMin, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadePtMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadePtMax, "confCascade"), std::vector<float>{5.5f, 6.0f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadePtMax, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeEtaMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeEtaMax, "confCascade"), std::vector<float>{0.8f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeEtaMax, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeDCADaughMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeDCADaughMax, "confCascade"), std::vector<float>{1.f, 1.2f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeDCADaughMax, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeCPAMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeCPAMin, "confCascade"), std::vector<float>{0.99f, 0.95f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeCPAMin, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeTranRadMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeTranRadMin, "confCascade"), std::vector<float>{0.2f, 0.5f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeTranRadMin, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeTranRadMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeTranRadMax, "confCascade"), std::vector<float>{100.f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeTranRadMax, "Cascade selection: ")};
+    Configurable<std::vector<float>> confCascadeDecVtxMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeDecVtxMax, "confCascade"), std::vector<float>{100.f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeDecVtxMax, "Cascade selection: ")};
+
+    // Cascade v0 daughters
+    Configurable<std::vector<float>> confCascadeV0DCADaughMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0DCADaughMax, "confCascade"), std::vector<float>{1.2f, 1.5f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0DCADaughMax, "CascV0 selection: ")};
+    Configurable<std::vector<float>> confCascadeV0CPAMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0CPAMin, "confCascade"), std::vector<float>{0.99f, 0.995f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0CPAMin, "CascV0 selection: ")};
+    Configurable<std::vector<float>> confCascadeV0TranRadMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0TranRadMin, "confCascade"), std::vector<float>{0.2f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0TranRadMin, "CascV0 selection: ")};
+    Configurable<std::vector<float>> confCascadeV0TranRadMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0TranRadMax, "confCascade"), std::vector<float>{100.f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0TranRadMax, "CascV0 selection: ")};
+    Configurable<std::vector<float>> confCascadeV0DCAtoPVMin{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMin, "confCascade"), std::vector<float>{100.f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMin, "CascV0 selection: ")};
+    Configurable<std::vector<float>> confCascadeV0DCAtoPVMax{FemtoDreamCascadeSelection::getSelectionName(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMax, "confCascade"), std::vector<float>{100.f}, FemtoDreamCascadeSelection::getSelectionHelper(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMax, "CascV0 selection: ")};
+    Configurable<float> confCascV0InvMassLowLimit{"confCascV0InvMassLowLimit", 1.011461, "Lower limit of the Cascade invariant mass"};
+    Configurable<float> confCascV0InvMassUpLimit{"confCascV0InvMassUpLimit", 1.027461, "Upper limit of the Cascade invariant mass"};
+    // Cascade Daughter Tracks
+    Configurable<std::vector<float>> confCascV0ChildSign{"confCascV0ChildSign", std::vector<float>{-1, 1}, "CascV0 Child sel: Charge"};
+    Configurable<std::vector<float>> confCascV0ChildPtMin{"confCascV0ChildPtMin", std::vector<float>{0.8f}, "CascV0 Child sel: min pt"};
+    Configurable<std::vector<float>> confCascV0ChildEtaMax{"confCascV0ChildEtaMax", std::vector<float>{0.8f}, "CascV0 Child sel: max eta"};
+    Configurable<std::vector<float>> confCascV0ChildTPCnClsMin{"confCascV0ChildTPCnClsMin", std::vector<float>{80.f, 70.f, 60.f}, "CascV0 Child sel: Min. nCls TPC"};
+    Configurable<std::vector<float>> confCascV0ChildDCAMin{"confCascV0ChildDCAMin", std::vector<float>{0.05f, 0.06f}, "CascV0 Child sel:  Max. DCA Daugh to PV (cm)"};
+    Configurable<std::vector<float>> confCascV0ChildPIDnSigmaMax{"confCascV0ChildPIDnSigmaMax", std::vector<float>{5.f, 4.f}, "CascV0 Child sel: Max. PID nSigma TPC"};
+    Configurable<std::vector<int>> confCascV0ChildPIDspecies{"confCascV0ChildPIDspecies", std::vector<int>{o2::track::PID::Pion, o2::track::PID::Proton}, "CascV0 Child sel: Particles species for PID"};
+    // Cascade Bachelor Track
+    Configurable<std::vector<float>> confCascBachelorSign{"confCascBachelorSign", std::vector<float>{-1, 1}, "Cascade Bachelor sel: Charge"};
+    Configurable<std::vector<float>> confCascBachelorPtMin{"confCascBachelorPtMin", std::vector<float>{0.8f}, "Cascade Bachelor sel: min pt"};
+    Configurable<std::vector<float>> confCascBachelorEtaMax{"confCascBachelorEtaMax", std::vector<float>{0.8f}, "Cascade Bachelor sel: max eta"};
+    Configurable<std::vector<float>> confCascBachelorTPCnClsMin{"confCascBachelorTPCnClsMin", std::vector<float>{80.f, 70.f, 60.f}, "Cascade Bachelor sel: Min. nCls TPC"};
+    Configurable<std::vector<float>> confCascBachelorDCAMin{"confCascBachelorDCAMin", std::vector<float>{0.05f, 0.06f}, "Cascade Bachelor sel:  Max. DCA Daugh to PV (cm)"};
+    Configurable<std::vector<float>> confCascBachelorPIDnSigmaMax{"confCascBachelorPIDnSigmaMax", std::vector<float>{5.f, 4.f}, "Cascade Bachelor sel: Max. PID nSigma TPC"};
+    Configurable<std::vector<int>> confCascBachelorPIDspecies{"confCascBachelorPIDspecies", std::vector<int>{o2::track::PID::Pion}, "Cascade Bachelor sel: Particles species for PID"};
+
+    Configurable<bool> confCascRejectCompetingMass{"confCascRejectCompetingMass", false, "Switch on to reject Omegas (for Xi) or Xis (for Omegas)"};
+    Configurable<float> confCascInvCompetingMassLowLimit{"confCascInvCompetingMassLowLimit", 1.66, "Lower limit of the cascade invariant mass for competing mass rejection"};
+    Configurable<float> confCascInvCompetingMassUpLimit{"confCascInvCompetingMassUpLimit", 1.68, "Upper limit of the cascade invariant mass for competing mass rejection"};
+
+  } confCascSel;
+
   // Resonances
   FemtoDreamResoSelection resoCuts;
   struct : ConfigurableGroup {
     std::string prefix = std::string("Resonance");
 
+    Configurable<float> confResoInvMass{"confResoInvMass", o2::constants::physics::MassPhi, "Literature value of the Reso invariant mass"};
     Configurable<float> confResoInvMassLowLimit{"confResoInvMassLowLimit", 0.9, "Lower limit of the Reso invariant mass"}; // 1.011461
     Configurable<float> confResoInvMassUpLimit{"confResoInvMassUpLimit", 1.15, "Upper limit of the Reso invariant mass"};  // 1.027461
+    Configurable<bool> confUseMassDiff{"confUseMassDiff", false, "(De)activates the usage of invMassDiff when checking combinations"};
+    Configurable<bool> confDoLikeSign{"confDoLikeSign", false, "(De)activates likeSign histo filling"};
+    Configurable<bool> confUseMassDiffLikeSign{"confUseMassDiffLikeSign", false, "(De)activates the usage of invMassDiff when checking combinations in LikeSign"};
+    Configurable<int> confMassQAPart2PID{"confMassQAPart2PID", o2::track::PID::Pion, "Daughter PID for massQAPart2 histograms"};
     Configurable<std::vector<float>> confResoSign{"confResoSign", std::vector<float>{-1., 1.}, "Reso Sign selection"};
-    Configurable<int> confResoMotherID{"confResoMotherID", static_cast<int>(femto_dream_reso_selection::kPhi), "ResoID of Mother [0: Phi, 1: KStar]"};
 
     Configurable<std::vector<float>> confDaughterCharge{FemtoDreamTrackSelection::getSelectionName(femtoDreamTrackSelection::kSign, "confDaughter"), std::vector<float>{-1, 1}, FemtoDreamTrackSelection::getSelectionHelper(femtoDreamTrackSelection::kSign, "Reso selection: ")};
     Configurable<std::vector<float>> confDaughterPtMin{FemtoDreamTrackSelection::getSelectionName(femtoDreamTrackSelection::kpTMin, "confDaughter"), std::vector<float>{0.1, 0.15, 0.2}, FemtoDreamTrackSelection::getSelectionHelper(femtoDreamTrackSelection::kpTMin, "Reso selection: ")};
@@ -242,8 +295,12 @@ struct FemtoDreamProducerTaskReso {
   } rctCut;
 
   HistogramRegistry qaRegistry{"QAHistos", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry qaRegistryV0{"QAHistosV0", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry qaRegistryCascade{"QAHistosCascade", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry qaRegistryReso{"QAHistosReso", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry trackRegistry{"Tracks", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry v0Registry{"V0", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry cascadeRegistry{"Cascade", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry resoRegistry{"Reso", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   int mRunNumber;
@@ -254,10 +311,10 @@ struct FemtoDreamProducerTaskReso {
 
   void init(InitContext&)
   {
-    if (doprocessData == false && doprocessData_noCentrality == false && doprocessData_CentPbPb == false && doprocessMC == false && doprocessMC_noCentrality == false && doprocessMC_CentPbPb == false) {
+    if (doprocessData == false && doprocessData_noCentrality == false && doprocessDataCentPbPb == false && doprocessMC == false && doprocessMCnoCentrality == false && doprocessMCCentPbPb == false) {
       LOGF(fatal, "Neither processData nor processMC enabled. Please choose one.");
     }
-    if ((doprocessData == true && doprocessMC == true) || (doprocessData == true && doprocessMC_noCentrality == true) || (doprocessMC == true && doprocessMC_noCentrality == true) || (doprocessData_noCentrality == true && doprocessData == true) || (doprocessData_noCentrality == true && doprocessMC == true) || (doprocessData_noCentrality == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessData == true) || (doprocessData_CentPbPb == true && doprocessData_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC == true) || (doprocessData_CentPbPb == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC_CentPbPb == true)) {
+    if ((doprocessData == true && doprocessMC == true) || (doprocessData == true && doprocessMCnoCentrality == true) || (doprocessMC == true && doprocessMCnoCentrality == true) || (doprocessData_noCentrality == true && doprocessData == true) || (doprocessData_noCentrality == true && doprocessMC == true) || (doprocessData_noCentrality == true && doprocessMCnoCentrality == true) || (doprocessDataCentPbPb == true && doprocessData == true) || (doprocessDataCentPbPb == true && doprocessData_noCentrality == true) || (doprocessDataCentPbPb == true && doprocessMC == true) || (doprocessDataCentPbPb == true && doprocessMCnoCentrality == true) || (doprocessDataCentPbPb == true && doprocessMCCentPbPb == true)) {
       LOGF(fatal,
            "Cannot enable more than one process switch at the same time. "
            "Please choose one.");
@@ -272,22 +329,63 @@ struct FemtoDreamProducerTaskReso {
     trackRegistry.add("AnalysisQA/Mother", "; Bit; Entries", kTH1F, {{4000, -4000, 4000}});
     trackRegistry.add("AnalysisQA/Particle", "; Bit; Entries", kTH1F, {{4000, -4000, 4000}});
     v0Registry.add("AnalysisQA/CutCounter", "; Bit; Counter", kTH1F, {{cutBits + 1, -0.5, cutBits + 0.5}});
+    cascadeRegistry.add("AnalysisQA/CutCounter", "; Bit; Counter", kTH1F, {{cutBits + 1, -0.5, cutBits + 0.5}});
 
     resoRegistry.add("AnalysisQA/Reso/InvMass", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
     resoRegistry.add("AnalysisQA/Reso/InvMassAnti", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
     resoRegistry.add("AnalysisQA/Reso/InvMass_phi_selected", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
     resoRegistry.add("AnalysisQA/Reso/InvMassAnti_phi_selected", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
 
-    resoRegistry.add("AnalysisQA/Reso/Daughter1/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter1/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter1/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter1/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
-    resoRegistry.add("AnalysisQA/Reso/Daughter1/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
-    resoRegistry.add("AnalysisQA/Reso/Daughter2/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter2/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter2/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
-    resoRegistry.add("AnalysisQA/Reso/Daughter2/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
-    resoRegistry.add("AnalysisQA/Reso/Daughter2/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
+    // Daughter-histos for normal resonance
+    // Histos for PosDaughter
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/PosDaughter/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/PosDaughter/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/PosDaughter/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/PosDaughter/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/PosDaughter/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
+    // Histos for NegDaughter
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/NegDaughter/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/NegDaughter/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/NegDaughter/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/NegDaughter/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/NegDaughter/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
+
+    // Daughter-histos for anti resonance
+    // Histos for PosDaughter
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/PosDaughter/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/PosDaughter/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/PosDaughter/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/PosDaughter/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/PosDaughter/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
+    // Histos for NegDaughter
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/NegDaughter/Pt", "Transverse momentum of all tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/NegDaughter/Eta", "Pseudorapidity of all  tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/NegDaughter/Phi", "Azimuthal angle of all  tracks;#phi;Entries", HistType::kTH1F, {{720, 0, o2::constants::math::TwoPI}});
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/NegDaughter/DcaXY", "dcaXY of all  tracks;d_{XY} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}}); // check if cm is correct here
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/NegDaughter/DcaZ", "dcaZ of all  tracks;d_{Z} (cm);Entries", HistType::kTH1F, {{1000, 0, 1}});    // check if cm is correct here
+
+    // SelectionQA
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/InvMassSwitched", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // for opposite mass hypothesis (Reso is anti)
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/InvMassBothPID1", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[0]
+    resoRegistry.add("AnalysisQA/Reso/ResoQA/InvMassBothPID2", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[1]
+
+    // AntiSelectionQA
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/InvMassSwitched", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // for opposite mass hypothesis (Reso is normal)
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/InvMassBothPID1", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[0]
+    resoRegistry.add("AnalysisQA/Reso/AntiResoQA/InvMassBothPID2", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[1]
+
+    // likeSign
+    if (Resonance.confDoLikeSign.value) {
+      resoRegistry.add("AnalysisQA/ResoLikeSign/ResoQA/InvMass", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
+      resoRegistry.add("AnalysisQA/ResoLikeSign/ResoQA/InvMassSwitched", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // for opposite mass hypothesis (Reso is anti)
+      resoRegistry.add("AnalysisQA/ResoLikeSign/ResoQA/InvMassBothPID1", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[0]
+      resoRegistry.add("AnalysisQA/ResoLikeSign/ResoQA/InvMassBothPID2", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[1]
+
+      resoRegistry.add("AnalysisQA/ResoLikeSign/AntiResoQA/InvMass", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}});
+      resoRegistry.add("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassSwitched", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // for opposite mass hypothesis (Reso is anti)
+      resoRegistry.add("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassBothPID1", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[0]
+      resoRegistry.add("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassBothPID2", "Invariant mass V0s;M_{KK};Entries", HistType::kTH1F, {{7000, 0.65, 1.5}}); // both particles are of type confDaughterPIDspecies[1]
+    }
 
     resoRegistry.add("AnalysisQA/Reso/Pt_posdaughter_selected", "Transverse momentum of all processed tracks;p_{T} (GeV/c);Entries", HistType::kTH1F, {{1000, 0, 10}});
     resoRegistry.add("AnalysisQA/Reso/Eta_posdaughter_selected", "Pseudorapidity of all processed tracks;#eta;Entries", HistType::kTH1F, {{1000, -2, 2}});
@@ -345,20 +443,20 @@ struct FemtoDreamProducerTaskReso {
       v0Cuts.setSelection(confV0TranRadMin, femto_dream_v0_selection::kV0TranRadMin, femtoDreamSelection::kLowerLimit);
       v0Cuts.setSelection(confV0TranRadMax, femto_dream_v0_selection::kV0TranRadMax, femtoDreamSelection::kUpperLimit);
       v0Cuts.setSelection(confV0DecVtxMax, femto_dream_v0_selection::kV0DecVtxMax, femtoDreamSelection::kUpperLimit);
-      v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildCharge, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
+      v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildSign, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildEtaMax, femtoDreamTrackSelection::kEtaMax, femtoDreamSelection::kAbsUpperLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildTPCnClsMin, femtoDreamTrackSelection::kTPCnClsMin, femtoDreamSelection::kLowerLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildDCAMin, femtoDreamTrackSelection::kDCAMin, femtoDreamSelection::kAbsLowerLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kPosTrack, confChildPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
 
-      v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildCharge, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
+      v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildSign, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildEtaMax, femtoDreamTrackSelection::kEtaMax, femtoDreamSelection::kAbsUpperLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildTPCnClsMin, femtoDreamTrackSelection::kTPCnClsMin, femtoDreamSelection::kLowerLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildDCAMin, femtoDreamTrackSelection::kDCAMin, femtoDreamSelection::kAbsLowerLimit);
       v0Cuts.setChildCuts(femto_dream_v0_selection::kNegTrack, confChildPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
       v0Cuts.setChildPIDSpecies(femto_dream_v0_selection::kPosTrack, confChildPIDspecies);
       v0Cuts.setChildPIDSpecies(femto_dream_v0_selection::kNegTrack, confChildPIDspecies);
-      v0Cuts.init<aod::femtodreamparticle::ParticleType::kV0, aod::femtodreamparticle::ParticleType::kV0Child, aod::femtodreamparticle::cutContainerType>(&qaRegistry, &v0Registry);
+      v0Cuts.init<aod::femtodreamparticle::ParticleType::kV0, aod::femtodreamparticle::ParticleType::kV0Child, aod::femtodreamparticle::cutContainerType>(&qaRegistryV0, &v0Registry);
       v0Cuts.setInvMassLimits(confV0InvMassLowLimit, confV0InvMassUpLimit);
       v0Cuts.setIsMother(confV0MotherIsLambda);
 
@@ -373,6 +471,59 @@ struct FemtoDreamProducerTaskReso {
         v0Cuts.setKaonInvMassLimits(confV0InvKaonMassLowLimit, confV0InvKaonMassUpLimit);
       }
       v0Cuts.setRejectLambda(confV0RejectLambdas);
+    }
+
+    if (confIsActivateCascade) {
+      // Cascades
+      cascadeCuts.setSelection(confCascSel.confCascadeSign, femtoDreamCascadeSelection::kCascadeSign, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeSign));
+      cascadeCuts.setSelection(confCascSel.confCascadePtMin, femtoDreamCascadeSelection::kCascadePtMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadePtMin));
+      cascadeCuts.setSelection(confCascSel.confCascadePtMax, femtoDreamCascadeSelection::kCascadePtMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadePtMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeEtaMax, femtoDreamCascadeSelection::kCascadeEtaMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeEtaMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeDCADaughMax, femtoDreamCascadeSelection::kCascadeDCADaughMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeDCADaughMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeCPAMin, femtoDreamCascadeSelection::kCascadeCPAMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeCPAMin));
+      cascadeCuts.setSelection(confCascSel.confCascadeTranRadMin, femtoDreamCascadeSelection::kCascadeTranRadMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeTranRadMin));
+      cascadeCuts.setSelection(confCascSel.confCascadeTranRadMax, femtoDreamCascadeSelection::kCascadeTranRadMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeTranRadMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeDecVtxMax, femtoDreamCascadeSelection::kCascadeDecVtxMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeDecVtxMax));
+      // Cascade v0
+      cascadeCuts.setSelection(confCascSel.confCascadeV0DCADaughMax, femtoDreamCascadeSelection::kCascadeV0DCADaughMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0DCADaughMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeV0CPAMin, femtoDreamCascadeSelection::kCascadeV0CPAMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0CPAMin));
+      cascadeCuts.setSelection(confCascSel.confCascadeV0TranRadMin, femtoDreamCascadeSelection::kCascadeV0TranRadMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0TranRadMin));
+      cascadeCuts.setSelection(confCascSel.confCascadeV0TranRadMax, femtoDreamCascadeSelection::kCascadeV0TranRadMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0TranRadMax));
+      cascadeCuts.setSelection(confCascSel.confCascadeV0DCAtoPVMin, femtoDreamCascadeSelection::kCascadeV0DCAtoPVMin, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMin));
+      cascadeCuts.setSelection(confCascSel.confCascadeV0DCAtoPVMax, femtoDreamCascadeSelection::kCascadeV0DCAtoPVMax, FemtoDreamCascadeSelection::getSelectionType(femtoDreamCascadeSelection::kCascadeV0DCAtoPVMax));
+
+      // Cascade Daughter Tracks
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildSign, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildPtMin, femtoDreamTrackSelection::kpTMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildEtaMax, femtoDreamTrackSelection::kEtaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildTPCnClsMin, femtoDreamTrackSelection::kTPCnClsMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildDCAMin, femtoDreamTrackSelection::kDCAMin, femtoDreamSelection::kAbsLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildPIDSpecies(femtoDreamCascadeSelection::kPosTrack, confCascSel.confCascV0ChildPIDspecies);
+
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildSign, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildPtMin, femtoDreamTrackSelection::kpTMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildEtaMax, femtoDreamTrackSelection::kEtaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildTPCnClsMin, femtoDreamTrackSelection::kTPCnClsMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildDCAMin, femtoDreamTrackSelection::kDCAMin, femtoDreamSelection::kAbsLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildPIDSpecies(femtoDreamCascadeSelection::kNegTrack, confCascSel.confCascV0ChildPIDspecies);
+
+      // Cascade Bachelor Track
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorSign, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorPtMin, femtoDreamTrackSelection::kpTMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorEtaMax, femtoDreamTrackSelection::kEtaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorTPCnClsMin, femtoDreamTrackSelection::kTPCnClsMin, femtoDreamSelection::kLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorDCAMin, femtoDreamTrackSelection::kDCAMin, femtoDreamSelection::kAbsLowerLimit);
+      cascadeCuts.setChildCuts(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
+      cascadeCuts.setChildPIDSpecies(femtoDreamCascadeSelection::kBachTrack, confCascSel.confCascBachelorPIDspecies);
+
+      cascadeCuts.init<aod::femtodreamparticle::ParticleType::kCascade, aod::femtodreamparticle::ParticleType::kCascadeV0Child, aod::femtodreamparticle::ParticleType::kCascadeBachelor, aod::femtodreamparticle::cutContainerType>(&qaRegistryCascade, &cascadeRegistry, confCascSel.confCascIsSelectedOmega);
+      cascadeCuts.setInvMassLimits(confCascSel.confCascInvMassLowLimit, confCascSel.confCascInvMassUpLimit);
+      cascadeCuts.setV0InvMassLimits(confCascSel.confCascV0InvMassLowLimit, confCascSel.confCascV0InvMassUpLimit);
+      if (confCascSel.confCascRejectCompetingMass) {
+        cascadeCuts.setCompetingInvMassLimits(confCascSel.confCascInvCompetingMassLowLimit, confCascSel.confCascInvCompetingMassUpLimit);
+      }
     }
 
     if (confIsActivateReso.value) {
@@ -399,7 +550,7 @@ struct FemtoDreamProducerTaskReso {
       resoCuts.setDaughterCuts(femto_dream_reso_selection::kNegdaugh, Resonance.confDaughterPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
 
       resoCuts.init<aod::femtodreamparticle::ParticleType::kReso,
-                    aod::femtodreamparticle::ParticleType::kResoChild>(&qaRegistry, &v0Registry);
+                    aod::femtodreamparticle::ParticleType::kResoChild>(&qaRegistryReso, &v0Registry);
 
       resoCuts.assign(Resonance.confDaughterPTPCThr); // assigns Configurable value to class member
       resoCuts.setDaughterPIDSpecies(femto_dream_reso_selection::kPosdaugh, Resonance.confDaughterPIDspecies);
@@ -558,14 +709,37 @@ struct FemtoDreamProducerTaskReso {
     }
   }
 
+  template <typename ParticleType, typename CollisionType>
+  void fillDebugCascade(ParticleType const& cascade, CollisionType const& col)
+  {
+    outputDebugParts(cascade.sign(),                                                // sign
+                     -999., -999., -999., -999., -999., -999., -999., -999., -999., // track properties (DCA, NCls, crossed rows, etc.)
+                     -999., -999., -999., -999., -999., -999., -999., -999.,        // TPC PID (TPC signal + particle hypothesis)
+                     -999., -999., -999., -999., -999., -999., -999.,               // TOF PID
+                     -999., -999., -999., -999., -999., -999., -999., -999.,        // ITS PID
+                     cascade.dcaV0daughters(),
+                     cascade.v0radius(),
+                     -999., // DecVtxV0 x
+                     -999., // DecVtxV0 y
+                     -999., // DecVtxV0 z
+                     -999., // mKaon
+                     cascade.dcav0topv(col.posX(), col.posY(), col.posZ()),
+                     cascade.dcacascdaughters(),
+                     cascade.cascradius(),
+                     cascade.x(),
+                     cascade.y(),
+                     cascade.z(),
+                     cascade.mOmega()); // QA for Reso
+  }
+
   template <typename CollisionType, typename ParticleType>
   void fillMCParticle(CollisionType const& col, ParticleType const& particle, o2::aod::femtodreamparticle::ParticleType fdparttype)
   {
     if (particle.has_mcParticle()) {
 
-      constexpr int kProcessDirectMother = 4;
-      constexpr int kProcessInelasticHadronic = 23;
-      constexpr int kGenStatusTransport = -1;
+      constexpr int ProcessDirectMother = 4;
+      constexpr int ProcessInelasticHadronic = 23;
+      constexpr int GenStatusTransport = -1;
 
       // get corresponding MC particle and its info
       auto particleMC = particle.mcParticle();
@@ -591,7 +765,7 @@ struct FemtoDreamProducerTaskReso {
           // particle is from a decay -> getProcess() == 4
           // particle is generated during transport -> getGenStatusCode() == -1
           // list of mothers is not empty
-        } else if (particleMC.getProcess() == kProcessDirectMother && particleMC.getGenStatusCode() == kGenStatusTransport && !motherparticlesMC.empty()) {
+        } else if (particleMC.getProcess() == ProcessDirectMother && particleMC.getGenStatusCode() == GenStatusTransport && !motherparticlesMC.empty()) {
           // get direct mother
           auto motherparticleMC = motherparticlesMC.front();
           pdgCodeMother = motherparticleMC.pdgCode();
@@ -600,7 +774,7 @@ struct FemtoDreamProducerTaskReso {
           // check if particle is material
           // particle is from inelastic hadronic interaction -> getProcess() == 23
           // particle is generated during transport -> getGenStatusCode() == -1
-        } else if (particleMC.getProcess() == kProcessInelasticHadronic && particleMC.getGenStatusCode() == kGenStatusTransport) {
+        } else if (particleMC.getProcess() == ProcessInelasticHadronic && particleMC.getGenStatusCode() == GenStatusTransport) {
           particleOrigin = aod::femtodreamMCparticle::ParticleOriginMCTruth::kMaterial;
           // cross check to see if we missed a case
         } else {
@@ -636,8 +810,76 @@ struct FemtoDreamProducerTaskReso {
       outputCollsMCLabels(-1);
     }
   }
-  template <bool isMC, bool hasItsPid, bool useCentrality, bool analysePbPb, typename V0Type, typename TrackType, typename TrackTypeWithItsPid, typename CollisionType>
-  void fillCollisionsAndTracksAndV0(CollisionType const& col, TrackType const& tracks, TrackTypeWithItsPid const& tracksWithItsPid, V0Type const& fullV0s)
+
+  template <typename P>
+  void fillLikeSign(P const& sliceDaughters)
+  {
+    for (const auto& track1 : sliceDaughters) {
+      if (!resoCuts.daughterSelectionPos(track1) || !resoCuts.isSelectedMinimalPIDPos(track1, Resonance.confDaughterPIDspecies.value)) {
+        continue;
+      }
+      for (const auto& track2 : sliceDaughters) {
+        if (!resoCuts.daughterSelectionPos(track2) || !resoCuts.isSelectedMinimalPIDPos(track2, Resonance.confDaughterPIDspecies.value)) {
+          continue;
+        }
+
+        /// This only works for the case where the mass of opposite charged particles are the same (for example K+/K- have same mass)
+        float massPart1 = o2::track::PID::getMass(Resonance.confDaughterPIDspecies.value[0]);
+        float massPart2 = o2::track::PID::getMass(Resonance.confDaughterPIDspecies.value[1]);
+
+        /// Resonance
+        ROOT::Math::PtEtaPhiMVector tempD1(track1.pt(), track1.eta(), track1.phi(), massPart1);
+        ROOT::Math::PtEtaPhiMVector tempD2(track2.pt(), track2.eta(), track2.phi(), massPart2);
+        ROOT::Math::PtEtaPhiMVector tempReso = tempD1 + tempD2;
+        /// Anti-resonance
+        ROOT::Math::PtEtaPhiMVector tempDA1(track1.pt(), track1.eta(), track1.phi(), massPart2);
+        ROOT::Math::PtEtaPhiMVector tempDA2(track2.pt(), track2.eta(), track2.phi(), massPart1);
+        ROOT::Math::PtEtaPhiMVector tempAntiReso = tempDA1 + tempDA2;
+
+        /// For InvMassQA
+        ROOT::Math::PtEtaPhiMVector tempDaughter1MassQA1(track1.pt(), track1.eta(), track1.phi(), massPart1);
+        ROOT::Math::PtEtaPhiMVector tempDaughter2MassQA1(track2.pt(), track2.eta(), track2.phi(), massPart1);
+        ROOT::Math::PtEtaPhiMVector tempMassQA1 = tempDaughter1MassQA1 + tempDaughter2MassQA1;
+
+        float massQAPart2 = massPart2;
+        if (Resonance.confDaughterPIDspecies.value[0] == Resonance.confDaughterPIDspecies.value[1]) {
+          massQAPart2 = o2::track::PID::getMass(Resonance.confMassQAPart2PID.value);
+        }
+
+        ROOT::Math::PtEtaPhiMVector tempDaughter1MassQA2(track1.pt(), track1.eta(), track1.phi(), massQAPart2);
+        ROOT::Math::PtEtaPhiMVector tempDaughter2MassQA2(track2.pt(), track2.eta(), track2.phi(), massQAPart2);
+        ROOT::Math::PtEtaPhiMVector tempMassQA2 = tempDaughter1MassQA2 + tempDaughter2MassQA2;
+
+        float massDiff = std::abs(Resonance.confResoInvMass.value - tempReso.M());
+        float massDiffAnti = std::abs(Resonance.confResoInvMass.value - tempAntiReso.M());
+
+        bool resoIsNotAnti = true; /// bool for differentianting between particle/antiparticle
+        if ((Resonance.confDaughterPIDspecies->size() > 1) && (Resonance.confDaughterPIDspecies.value[0] != Resonance.confDaughterPIDspecies.value[1])) {
+          auto [isNormal, WrongCombination] = resoCuts.checkCombination(track1, track2, Resonance.confDaughterPIDspecies.value, massDiff, massDiffAnti, Resonance.confUseMassDiffLikeSign.value);
+          if (WrongCombination) {
+            continue;
+          }
+          resoIsNotAnti = isNormal;
+        }
+        /// Resos, where both daughters have the same PID are defaulted to sign 1. and resoIsNotAnti = true
+
+        if (resoIsNotAnti) {
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/ResoQA/InvMass"), tempReso.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/ResoQA/InvMassSwitched"), tempAntiReso.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/ResoQA/InvMassBothPID1"), tempMassQA1.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/ResoQA/InvMassBothPID2"), tempMassQA2.M());
+        } else {
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/AntiResoQA/InvMass"), tempReso.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassSwitched"), tempAntiReso.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassBothPID1"), tempMassQA1.M());
+          resoRegistry.fill(HIST("AnalysisQA/ResoLikeSign/AntiResoQA/InvMassBothPID2"), tempMassQA2.M());
+        }
+      } // for (const &auto track2 : sliceDaughters)
+    } // for (const &auto track1 : sliceDaughters)
+  }
+
+  template <bool isMC, bool hasItsPid, bool useCentrality, bool analysePbPb, typename CascadeType, typename V0Type, typename TrackType, typename TrackTypeWithItsPid, typename CollisionType>
+  void fillCollisionsAndTracksAndV0AndCascade(CollisionType const& col, TrackType const& tracks, TrackTypeWithItsPid const& tracksWithItsPid, V0Type const& fullV0s, CascadeType const& fullCascades)
   {
     // If triggering is enabled, select only events which were triggered wit our triggers
     if (confEnableTriggerSelection) {
@@ -675,6 +917,12 @@ struct FemtoDreamProducerTaskReso {
       return;
     }
 
+    if (confIsActivateCascade.value) {
+      if (colCuts.isEmptyCollision(col, tracks, trackCuts) && colCuts.isCollisionWithoutTrkCasc(col, fullCascades, cascadeCuts, tracks)) {
+        return;
+      }
+    }
+
     if (confIsActivateV0.value) {
       if (colCuts.isEmptyCollision(col, tracks, trackCuts) && colCuts.isEmptyCollision(col, fullV0s, v0Cuts, tracks)) {
         return;
@@ -694,8 +942,9 @@ struct FemtoDreamProducerTaskReso {
       fillMCCollision(col);
     }
 
-    std::vector<int> childIDs = {0, 0}; // these IDs are necessary to keep track of the children
-    std::vector<int> tmpIDtrack;        // this vector keeps track of the matching of the primary track table row <-> aod::track table global index
+    std::vector<int> childIDs = {0, 0};           // these IDs are necessary to keep track of the children
+    std::vector<int> cascadechildIDs = {0, 0, 0}; // these IDs are necessary to keep track of the children
+    std::vector<int> tmpIDtrack;                  // this vector keeps track of the matching of the primary track table row <-> aod::track table global index
 
     for (const auto& track : tracksWithItsPid) {
 
@@ -841,6 +1090,114 @@ struct FemtoDreamProducerTaskReso {
       }
     }
 
+    if (confIsActivateCascade.value) {
+      for (const auto& casc : fullCascades) {
+        // get the daughter tracks
+        const auto& posTrackCasc = casc.template posTrack_as<TrackType>();
+        const auto& negTrackCasc = casc.template negTrack_as<TrackType>();
+        const auto& bachTrackCasc = casc.template bachelor_as<TrackType>();
+
+        cascadeCuts.fillQA<0, aod::femtodreamparticle::ParticleType::kCascade>(col, casc, posTrackCasc, negTrackCasc, bachTrackCasc);
+        if (!cascadeCuts.isSelectedMinimal(col, casc, posTrackCasc, negTrackCasc, bachTrackCasc)) {
+          continue;
+        }
+        cascadeCuts.fillQA<1, aod::femtodreamparticle::ParticleType::kCascade>(col, casc, posTrackCasc, negTrackCasc, bachTrackCasc);
+
+        // auto cutContainerCasc = cascadeCuts.getCutContainer<aod::femtodreamparticle::cutContainerType>(col, casc, v0daugh, posTrackCasc, negTrackCasc, bachTrackCasc);
+        auto cutContainerCasc = cascadeCuts.getCutContainer<aod::femtodreamparticle::cutContainerType>(col, casc, posTrackCasc, negTrackCasc, bachTrackCasc);
+
+        // Fill positive child
+        int poscasctrackID = casc.posTrackId();
+        int rowInPrimaryTrackTablePosCasc = -1;
+        rowInPrimaryTrackTablePosCasc = getRowDaughters(poscasctrackID, tmpIDtrack);
+        cascadechildIDs[0] = rowInPrimaryTrackTablePosCasc;
+        cascadechildIDs[1] = 0;
+        cascadechildIDs[2] = 0;
+        outputParts(outputCollision.lastIndex(),
+                    posTrackCasc.pt(),
+                    posTrackCasc.eta(),
+                    posTrackCasc.phi(),
+                    aod::femtodreamparticle::ParticleType::kCascadeV0Child,
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kPosCuts),
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kPosPID),
+                    posTrackCasc.dcaXY(),
+                    cascadechildIDs,
+                    0,
+                    0);
+        const int rowOfPosCascadeTrack = outputParts.lastIndex();
+        // TODO: include here MC filling
+        //------
+
+        // Fill negative child
+        int negcasctrackID = casc.negTrackId();
+        int rowInPrimaryTrackTableNegCasc = -1;
+        rowInPrimaryTrackTableNegCasc = getRowDaughters(negcasctrackID, tmpIDtrack);
+        cascadechildIDs[0] = 0;
+        cascadechildIDs[1] = rowInPrimaryTrackTableNegCasc;
+        cascadechildIDs[2] = 0;
+        outputParts(outputCollision.lastIndex(),
+                    negTrackCasc.pt(),
+                    negTrackCasc.eta(),
+                    negTrackCasc.phi(),
+                    aod::femtodreamparticle::ParticleType::kCascadeV0Child,
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kNegCuts),
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kNegPID),
+                    negTrackCasc.dcaXY(),
+                    cascadechildIDs,
+                    0,
+                    0);
+        const int rowOfNegCascadeTrack = outputParts.lastIndex();
+        // TODO: include here MC filling
+        //------
+
+        // Fill bachelor child
+        int bachelorcasctrackID = casc.bachelorId();
+        int rowInPrimaryTrackTableBachelorCasc = -1;
+        rowInPrimaryTrackTableBachelorCasc = getRowDaughters(bachelorcasctrackID, tmpIDtrack);
+        cascadechildIDs[0] = 0;
+        cascadechildIDs[1] = 0;
+        cascadechildIDs[2] = rowInPrimaryTrackTableBachelorCasc;
+        outputParts(outputCollision.lastIndex(),
+                    bachTrackCasc.pt(),
+                    bachTrackCasc.eta(),
+                    bachTrackCasc.phi(),
+                    aod::femtodreamparticle::ParticleType::kCascadeBachelor,
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kBachCuts),
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kBachPID),
+                    bachTrackCasc.dcaXY(),
+                    cascadechildIDs,
+                    0,
+                    0);
+        const int rowOfBachelorCascadeTrack = outputParts.lastIndex();
+        // TODO: include here MC filling
+        //------
+
+        // Fill cascades
+        float invMassCasc = confCascSel.confCascIsSelectedOmega ? casc.mOmega() : casc.mXi();
+        std::vector<int> indexCascadeChildID = {rowOfPosCascadeTrack, rowOfNegCascadeTrack, rowOfBachelorCascadeTrack};
+        outputParts(outputCollision.lastIndex(),
+                    casc.pt(),
+                    casc.eta(),
+                    casc.phi(),
+                    aod::femtodreamparticle::ParticleType::kCascade,
+                    cutContainerCasc.at(femtoDreamCascadeSelection::CascadeContainerPosition::kCascade),
+                    0,
+                    casc.casccosPA(col.posX(), col.posY(), col.posZ()),
+                    indexCascadeChildID,
+                    invMassCasc,
+                    casc.mLambda());
+        // TODO: include here MC filling
+        //------
+
+        if (confIsDebug.value) {
+          fillDebugParticle<true, false>(posTrackCasc);  // QA for positive daughter
+          fillDebugParticle<true, false>(negTrackCasc);  // QA for negative daughter
+          fillDebugParticle<true, false>(bachTrackCasc); // QA for negative daughter
+          fillDebugCascade(casc, col);                   // QA for Cascade
+        }
+      }
+    }
+
     if (confIsActivatePhi.value) {
 
       resoCuts.updateThreshold();
@@ -849,19 +1206,49 @@ struct FemtoDreamProducerTaskReso {
       auto sliceNegdaugh = daughter2.sliceByCached(aod::track::collisionId, col.globalIndex(), cache);
 
       for (const auto& track1 : slicePosdaugh) {
-        if (!resoCuts.daughterSelectionPos(track1) || !resoCuts.isSelectedMinimalPIDPos(track1, Resonance.confDaughterPIDspecies.value[0])) {
+        if (!resoCuts.daughterSelectionPos(track1) || !resoCuts.isSelectedMinimalPIDPos(track1, Resonance.confDaughterPIDspecies.value)) {
           continue;
         }
 
         for (const auto& track2 : sliceNegdaugh) {
-          if (!resoCuts.daughterSelectionNeg(track2) || !resoCuts.isSelectedMinimalPIDNeg(track2, Resonance.confDaughterPIDspecies.value[1])) {
+          if (!resoCuts.daughterSelectionNeg(track2) || !resoCuts.isSelectedMinimalPIDNeg(track2, Resonance.confDaughterPIDspecies.value)) {
             continue; /// loosest cuts for track2
           }
+
+          /// This only works for the case where the mass of opposite charged particles are the same (for example K+/K- have same mass)
+          float massPart1 = o2::track::PID::getMass(Resonance.confDaughterPIDspecies.value[0]);
+          float massPart2 = o2::track::PID::getMass(Resonance.confDaughterPIDspecies.value[1]);
+
+          /// Resonance
+          ROOT::Math::PtEtaPhiMVector tempD1(track1.pt(), track1.eta(), track1.phi(), massPart1);
+          ROOT::Math::PtEtaPhiMVector tempD2(track2.pt(), track2.eta(), track2.phi(), massPart2);
+          ROOT::Math::PtEtaPhiMVector tempReso = tempD1 + tempD2;
+          /// Anti-resonance
+          ROOT::Math::PtEtaPhiMVector tempDA1(track1.pt(), track1.eta(), track1.phi(), massPart2);
+          ROOT::Math::PtEtaPhiMVector tempDA2(track2.pt(), track2.eta(), track2.phi(), massPart1);
+          ROOT::Math::PtEtaPhiMVector tempAntiReso = tempDA1 + tempDA2;
+
+          /// For InvMassQA
+          ROOT::Math::PtEtaPhiMVector tempDaughter1MassQA1(track1.pt(), track1.eta(), track1.phi(), massPart1);
+          ROOT::Math::PtEtaPhiMVector tempDaughter2MassQA1(track2.pt(), track2.eta(), track2.phi(), massPart1);
+          ROOT::Math::PtEtaPhiMVector tempMassQA1 = tempDaughter1MassQA1 + tempDaughter2MassQA1;
+
+          float massQAPart2 = massPart2;
+          if (Resonance.confDaughterPIDspecies.value[0] == Resonance.confDaughterPIDspecies.value[1]) {
+            massQAPart2 = o2::track::PID::getMass(Resonance.confMassQAPart2PID.value);
+          }
+
+          ROOT::Math::PtEtaPhiMVector tempDaughter1MassQA2(track1.pt(), track1.eta(), track1.phi(), massQAPart2);
+          ROOT::Math::PtEtaPhiMVector tempDaughter2MassQA2(track2.pt(), track2.eta(), track2.phi(), massQAPart2);
+          ROOT::Math::PtEtaPhiMVector tempMassQA2 = tempDaughter1MassQA2 + tempDaughter2MassQA2;
+
+          float massDiff = std::abs(Resonance.confResoInvMass.value - tempReso.M());
+          float massDiffAnti = std::abs(Resonance.confResoInvMass.value - tempAntiReso.M());
 
           bool resoIsNotAnti = true; /// bool for differentianting between particle/antiparticle
           float resoSign = 1.;
           if ((Resonance.confDaughterPIDspecies->size() > 1) && (Resonance.confDaughterPIDspecies.value[0] != Resonance.confDaughterPIDspecies.value[1])) {
-            auto [isNormal, WrongCombination] = resoCuts.checkCombination(track1, track2, static_cast<femto_dream_reso_selection::ResoMothers>(Resonance.confResoMotherID.value));
+            auto [isNormal, WrongCombination] = resoCuts.checkCombination(track1, track2, Resonance.confDaughterPIDspecies.value, massDiff, massDiffAnti, Resonance.confUseMassDiff.value);
             if (WrongCombination) {
               continue;
             }
@@ -872,39 +1259,49 @@ struct FemtoDreamProducerTaskReso {
           }
           /// Resos, where both daughters have the same PID are defaulted to sign 1. and resoIsNotAnti = true
 
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter1/Pt"), track1.pt());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter2/Pt"), track2.pt());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter1/Eta"), track1.eta());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter2/Eta"), track2.eta());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter1/DcaXY"), track1.dcaXY());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter2/DcaXY"), track2.dcaXY());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter1/DcaZ"), track1.dcaZ());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter2/DcaZ"), track2.dcaZ());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter1/Phi"), track1.phi());
-          resoRegistry.fill(HIST("AnalysisQA/Reso/Daughter2/Phi"), track2.phi());
-
-          /// Get masses for calculating invariant Mass
-          /// This only works for the case where the mass of opposite charged particles are the same (for example K+/K- have same mass)
-          auto [MassPart1, MassPart2] = resoCuts.getMassDaughters(static_cast<femto_dream_reso_selection::ResoMothers>(Resonance.confResoMotherID.value));
-
-          /// Resonance
-          ROOT::Math::PtEtaPhiMVector tempD1(track1.pt(), track1.eta(), track1.phi(), MassPart1);
-          ROOT::Math::PtEtaPhiMVector tempD2(track2.pt(), track2.eta(), track2.phi(), MassPart2);
-          ROOT::Math::PtEtaPhiMVector tempReso = tempD1 + tempD2;
-          /// Anti-resonance
-          ROOT::Math::PtEtaPhiMVector tempDA1(track1.pt(), track1.eta(), track1.phi(), MassPart2);
-          ROOT::Math::PtEtaPhiMVector tempDA2(track2.pt(), track2.eta(), track2.phi(), MassPart1);
-          ROOT::Math::PtEtaPhiMVector tempAntiReso = tempDA1 + tempDA2;
-
           if (resoIsNotAnti) {
             resoRegistry.fill(HIST("AnalysisQA/Reso/InvMass"), tempReso.M());
+            // Fill DaughterQA histos
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/PosDaughter/Pt"), track1.pt());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/NegDaughter/Pt"), track2.pt());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/PosDaughter/Eta"), track1.eta());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/NegDaughter/Eta"), track2.eta());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/PosDaughter/DcaXY"), track1.dcaXY());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/NegDaughter/DcaXY"), track2.dcaXY());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/PosDaughter/DcaZ"), track1.dcaZ());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/NegDaughter/DcaZ"), track2.dcaZ());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/PosDaughter/Phi"), track1.phi());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/NegDaughter/Phi"), track2.phi());
+            // Fill InvMassQA histos
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/InvMassSwitched"), tempAntiReso.M());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/InvMassBothPID1"), tempMassQA1.M());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/ResoQA/InvMassBothPID2"), tempMassQA2.M());
+
+            /// MassCut
             if (!(tempReso.M() > Resonance.confResoInvMassLowLimit.value && tempReso.M() < Resonance.confResoInvMassUpLimit.value))
-              continue; /// MassCut
+              continue;
             resoRegistry.fill(HIST("AnalysisQA/Reso/InvMass_phi_selected"), tempReso.M());
           } else {
             resoRegistry.fill(HIST("AnalysisQA/Reso/InvMassAnti"), tempAntiReso.M());
+            // Fill DaughterQA histos
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/PosDaughter/Pt"), track1.pt());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/NegDaughter/Pt"), track2.pt());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/PosDaughter/Eta"), track1.eta());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/NegDaughter/Eta"), track2.eta());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/PosDaughter/DcaXY"), track1.dcaXY());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/NegDaughter/DcaXY"), track2.dcaXY());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/PosDaughter/DcaZ"), track1.dcaZ());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/NegDaughter/DcaZ"), track2.dcaZ());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/PosDaughter/Phi"), track1.phi());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/NegDaughter/Phi"), track2.phi());
+            // Fill InvMassQA histos
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/InvMassSwitched"), tempReso.M());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/InvMassBothPID1"), tempMassQA1.M());
+            resoRegistry.fill(HIST("AnalysisQA/Reso/AntiResoQA/InvMassBothPID2"), tempMassQA2.M());
+
+            /// MassCut
             if (!(tempAntiReso.M() > Resonance.confResoInvMassLowLimit.value && tempAntiReso.M() < Resonance.confResoInvMassUpLimit.value))
-              continue; /// MassCut
+              continue;
             resoRegistry.fill(HIST("AnalysisQA/Reso/InvMassAnti_phi_selected"), tempAntiReso.M());
           }
 
@@ -923,10 +1320,10 @@ struct FemtoDreamProducerTaskReso {
           resoRegistry.fill(HIST("AnalysisQA/Reso/Phi_posdaughter_selected"), track1.phi());
           resoRegistry.fill(HIST("AnalysisQA/Reso/Phi_negdaughter_selected"), track2.phi());
 
-          auto type = resoCuts.getType(track1, track2); //   kResoPosdaughTPC_NegdaughTPC
-                                                        //   kResoPosdaughTPC_NegdaughTOF
-                                                        //   kResoPosdaughTPC_NegdaughTPC
-                                                        //   kResoPosdaughTOF_NegdaughTOF as possible output
+          auto type = resoCuts.getType(track1, track2, resoIsNotAnti); //   kResoPosdaughTPC_NegdaughTPC
+                                                                       //   kResoPosdaughTPC_NegdaughTOF
+                                                                       //   kResoPosdaughTPC_NegdaughTPC
+                                                                       //   kResoPosdaughTOF_NegdaughTOF as possible output
 
           auto bitmask = resoCuts.getCutContainer<aod::femtodreamparticle::cutContainerType>(track1, track2, resoSign);
 
@@ -998,16 +1395,23 @@ struct FemtoDreamProducerTaskReso {
             fillDebugParticle<true, false>(track2); // QA for negative daughter
             fillDebugParticle<false, false, ROOT::Math::PtEtaPhiMVector, true>(outputReso);
           }
-        }
+        } // for (const auto& track2 : sliceNegdaugh)
+      } // for (const auto& track1 : slicePosdaugh)
+
+      if (Resonance.confDoLikeSign.value) {
+        fillLikeSign(slicePosdaugh);
+        fillLikeSign(sliceNegdaugh);
       }
-    }
-  }
+
+    } // if (confIsActivatePhi.value)
+  } // void fillCollisionsAndTracksAndV0(...)
 
   void
     processData(aod::FemtoFullCollision const& col,
                 aod::BCsWithTimestamps const&,
                 aod::FemtoFullTracks const& tracks,
-                o2::aod::V0Datas const& fullV0s)
+                o2::aod::V0Datas const& fullV0s,
+                o2::aod::CascDatas const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
@@ -1016,9 +1420,9 @@ struct FemtoDreamProducerTaskReso {
                                         aod::pidits::ITSNSigmaPr, aod::pidits::ITSNSigmaDe, aod::pidits::ITSNSigmaTr, aod::pidits::ITSNSigmaHe>(tracks);
 
     if (confUseItsPid.value) {
-      fillCollisionsAndTracksAndV0<false, true, true, false>(col, tracks, tracksWithItsPid, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, true, true, false>(col, tracks, tracksWithItsPid, fullV0s, fullCascades);
     } else {
-      fillCollisionsAndTracksAndV0<false, false, true, false>(col, tracks, tracks, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, false, true, false>(col, tracks, tracks, fullV0s, fullCascades);
     }
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskReso, processData,
@@ -1028,7 +1432,8 @@ struct FemtoDreamProducerTaskReso {
     processData_noCentrality(aod::FemtoFullCollisionNoCent const& col,
                              aod::BCsWithTimestamps const&,
                              aod::FemtoFullTracks const& tracks,
-                             o2::aod::V0Datas const& fullV0s)
+                             o2::aod::V0Datas const& fullV0s,
+                             o2::aod::CascDatas const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
@@ -1037,18 +1442,19 @@ struct FemtoDreamProducerTaskReso {
                                         aod::pidits::ITSNSigmaPr, aod::pidits::ITSNSigmaDe, aod::pidits::ITSNSigmaTr, aod::pidits::ITSNSigmaHe>(tracks);
 
     if (confUseItsPid.value) {
-      fillCollisionsAndTracksAndV0<false, true, false, false>(col, tracks, tracksWithItsPid, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, true, false, false>(col, tracks, tracksWithItsPid, fullV0s, fullCascades);
     } else {
-      fillCollisionsAndTracksAndV0<false, false, false, false>(col, tracks, tracks, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, false, false, false>(col, tracks, tracks, fullV0s, fullCascades);
     }
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskReso, processData_noCentrality,
                  "Provide experimental data without centrality information", false);
 
-  void processData_CentPbPb(aod::FemtoFullCollisionCentPbPb const& col, // o2-linter: disable=name/function-variable (UpperCamelCase defined soa::JOIN)
-                            aod::BCsWithTimestamps const&,
-                            aod::FemtoFullTracks const& tracks,
-                            o2::aod::V0Datas const& fullV0s)
+  void processDataCentPbPb(aod::FemtoFullCollisionCentPbPb const& col,
+                           aod::BCsWithTimestamps const&,
+                           aod::FemtoFullTracks const& tracks,
+                           o2::aod::V0Datas const& fullV0s,
+                           o2::aod::CascDatas const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
@@ -1057,12 +1463,12 @@ struct FemtoDreamProducerTaskReso {
                                         aod::pidits::ITSNSigmaPr, aod::pidits::ITSNSigmaDe, aod::pidits::ITSNSigmaTr, aod::pidits::ITSNSigmaHe>(tracks);
 
     if (confUseItsPid.value) {
-      fillCollisionsAndTracksAndV0<false, true, true, true>(col, tracks, tracksWithItsPid, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, true, true, true>(col, tracks, tracksWithItsPid, fullV0s, fullCascades);
     } else {
-      fillCollisionsAndTracksAndV0<false, false, true, true>(col, tracks, tracks, fullV0s);
+      fillCollisionsAndTracksAndV0AndCascade<false, false, true, true>(col, tracks, tracks, fullV0s, fullCascades);
     }
   }
-  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processData_CentPbPb,
+  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processDataCentPbPb,
                  "Provide experimental data with centrality information for PbPb collisions", false);
 
   void processMC(aod::FemtoFullCollisionMC const& col,
@@ -1070,42 +1476,45 @@ struct FemtoDreamProducerTaskReso {
                  soa::Join<aod::FemtoFullTracks, aod::McTrackLabels> const& tracks,
                  aod::FemtoFullMCgenCollisions const&,
                  aod::McParticles const&,
-                 soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s) /// \todo with FilteredFullV0s
+                 soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s, /// \todo with FilteredFullV0s
+                 soa::Join<o2::aod::CascDatas, aod::McCascLabels> const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
     // fill the tables
-    fillCollisionsAndTracksAndV0<false, false, true, false>(col, tracks, tracks, fullV0s);
+    fillCollisionsAndTracksAndV0AndCascade<false, false, true, false>(col, tracks, tracks, fullV0s, fullCascades);
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskReso, processMC, "Provide MC data", false);
 
-  void processMC_noCentrality(aod::FemtoFullCollisionNoCentMC const& col, // o2-linter: disable=name/function-variable (UpperCamelCase defined soa::JOIN)
-                              aod::BCsWithTimestamps const&,
-                              soa::Join<aod::FemtoFullTracks, aod::McTrackLabels> const& tracks,
-                              aod::FemtoFullMCgenCollisions const&,
-                              aod::McParticles const&,
-                              soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s) /// \todo with FilteredFullV0s
+  void processMCnoCentrality(aod::FemtoFullCollisionNoCentMC const& col,
+                             aod::BCsWithTimestamps const&,
+                             soa::Join<aod::FemtoFullTracks, aod::McTrackLabels> const& tracks,
+                             aod::FemtoFullMCgenCollisions const&,
+                             aod::McParticles const&,
+                             soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s, /// \todo with FilteredFullV0s
+                             soa::Join<o2::aod::CascDatas, aod::McCascLabels> const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
     // fill the tables
-    fillCollisionsAndTracksAndV0<true, false, false, false>(col, tracks, tracks, fullV0s);
+    fillCollisionsAndTracksAndV0AndCascade<true, false, false, false>(col, tracks, tracks, fullV0s, fullCascades);
   }
-  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processMC_noCentrality, "Provide MC data without requiring a centrality calibration", false);
+  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processMCnoCentrality, "Provide MC data without requiring a centrality calibration", false);
 
-  void processMC_CentPbPb(aod::FemtoFullCollisionMCCentPbPb const& col, // o2-linter: disable=name/function-variable (UpperCamelCase defined soa::JOIN)
-                          aod::BCsWithTimestamps const&,
-                          soa::Join<aod::FemtoFullTracks, aod::McTrackLabels> const& tracks,
-                          aod::FemtoFullMCgenCollisions const&,
-                          aod::McParticles const&,
-                          soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s) /// \todo with FilteredFullV0s
+  void processMCCentPbPb(aod::FemtoFullCollisionMCCentPbPb const& col,
+                         aod::BCsWithTimestamps const&,
+                         soa::Join<aod::FemtoFullTracks, aod::McTrackLabels> const& tracks,
+                         aod::FemtoFullMCgenCollisions const&,
+                         aod::McParticles const&,
+                         soa::Join<o2::aod::V0Datas, aod::McV0Labels> const& fullV0s, /// \todo with FilteredFullV0s
+                         soa::Join<o2::aod::CascDatas, aod::McCascLabels> const& fullCascades)
   {
     // get magnetic field for run
     initCcdbMagTrig(col.bc_as<aod::BCsWithTimestamps>());
     // fill the tables
-    fillCollisionsAndTracksAndV0<true, false, true, true>(col, tracks, tracks, fullV0s);
+    fillCollisionsAndTracksAndV0AndCascade<true, false, true, true>(col, tracks, tracks, fullV0s, fullCascades);
   }
-  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processMC_CentPbPb, "Provide MC data with centrality information for PbPb collisions", false);
+  PROCESS_SWITCH(FemtoDreamProducerTaskReso, processMCCentPbPb, "Provide MC data with centrality information for PbPb collisions", false);
 };
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
