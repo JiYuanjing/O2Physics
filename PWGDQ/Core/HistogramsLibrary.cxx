@@ -704,6 +704,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
         if (subGroupStr.Contains("tofpid_femto")) {
           hm->AddHistogram(histClass, "TOFnSigPr_p", "TOF n-#sigma(p) vs p", false, 100, 0.0, 10.0, VarManager::kP, 100, -10.0, 10.0, VarManager::kTOFnSigmaPr);
           hm->AddHistogram(histClass, "TOFnSigPr_pIN_femto", "TOF n-#sigma(p) vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 100, -10.0, 10.0, VarManager::kTOFnSigmaPr);
+          hm->AddHistogram(histClass, "TOFnSigPr_pt", "TOF n-#sigma(p) vs pt", false, 100, 0.0, 10.0, VarManager::kPt, 100, -10.0, 10.0, VarManager::kTOFnSigmaPr);
         }
       }
     }
