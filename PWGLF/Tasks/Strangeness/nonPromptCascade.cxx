@@ -9,41 +9,44 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Common/Core/RecoDecay.h"
+#include "Common/Core/Zorro.h"
+#include "Common/Core/ZorroSummary.h"
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/Multiplicity.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+
+#include "CCDB/BasicCCDBManager.h"
+#include "DCAFitter/DCAFitterN.h"
+#include "DataFormatsParameters/GRPMagField.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsTPC/BetheBlochAleph.h"
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsVertexing/PVertexer.h"
+#include "Framework/ASoA.h"
+#include "Framework/ASoAHelpers.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/HistogramRegistry.h"
+#include "Framework/runDataProcessing.h"
+#include "ReconstructionDataFormats/Vertex.h"
+
+#include "Math/Vector4D.h"
+
 #include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "Math/Vector4D.h"
-
-#include "CCDB/BasicCCDBManager.h"
-#include "Common/DataModel/Centrality.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/PIDResponse.h"
-#include "Common/DataModel/TrackSelectionTables.h"
-#include "Common/DataModel/Multiplicity.h"
-#include "Common/Core/RecoDecay.h"
-#include "Common/Core/trackUtilities.h"
-#include "DetectorsVertexing/PVertexer.h"
-#include "ReconstructionDataFormats/Vertex.h"
-#include "DataFormatsParameters/GRPMagField.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsTPC/BetheBlochAleph.h"
-#include "DCAFitter/DCAFitterN.h"
-#include "DetectorsBase/Propagator.h"
-#include "EventFiltering/Zorro.h"
-#include "EventFiltering/ZorroSummary.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoA.h"
-#include "Framework/ASoAHelpers.h"
-#include "Framework/HistogramRegistry.h"
-#include "Framework/runDataProcessing.h"
 // #include "PWGHF/Core/PDG.h"
+#include "PWGLF/DataModel/LFNonPromptCascadeTables.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
+
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "PWGLF/DataModel/LFNonPromptCascadeTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -201,7 +204,12 @@ struct NonPromptCascadeTask {
   Configurable<float> cfgMinCosPA{"cfgMinCosPA", -1.f, "Minimum cosine of pointing angle"};
   Configurable<LabeledArray<float>> cfgCutsPID{"particlesCutsPID", {cutsPID[0], nParticles, nCutsPID, particlesNames, cutsNames}, "Nuclei PID selections"};
   Configurable<bool> cfgSkimmedProcessing{"cfgSkimmedProcessing", true, "Skimmed dataset processing"};
+
   Configurable<std::string> cfgTriggersOfInterest{"cfgTriggersOfInterest", "fTrackedOmega,fOmegaHighMult", "Triggers of interest, comma separated for Zorro"};
+
+  Configurable<float> cfgMaxMult{"cfgMaxMult", 8000.f, "Upper range of multiplicty histo"};
+  Configurable<float> cfgMinMult{"cfgMinMult", 3000.f, "Lower range of FT0M histo in zoomed histo"};
+  Configurable<float> cfgMaxCent{"cfgMaxCent", 8.0025f, "Upper range of FT0M histo"};
 
   Zorro mZorro;
   OutputObj<ZorroSummary> mZorroSummary{"ZorroSummary"};
@@ -218,10 +226,13 @@ struct NonPromptCascadeTask {
   std::unordered_map<std::string, std::shared_ptr<TH2>> mHistsPerRunNtracktVsCent;
   std::unordered_map<std::string, std::shared_ptr<TH2>> mHistsPerRunNtracktVsCentZoom;
 
-  AxisSpec multAxis = {10000, 0, 10000, "Multiplicity FT0M"};
-  AxisSpec centAxis = {2021, -0.025, 101.025, "Centrality"};
-  AxisSpec centAxisZoom = {2000, -0.0025, 10.0025, "Centrality"};
-  AxisSpec multAxisZoom = {7000, 3000, 10000, "Multiplicity FT0M"};
+  int nBinsMult = cfgMaxMult;
+  int nBinsMultZoom = cfgMaxMult - cfgMinMult;
+  int nBinsCentZoom = (cfgMaxCent + 0.0025) / 0.005;
+  AxisSpec multAxis = {nBinsMult, 0, cfgMaxMult, "Multiplicity FT0M"};
+  AxisSpec centAxis = {101, -0.025, 101.025, "Centrality"};
+  AxisSpec centAxisZoom = {nBinsCentZoom, -0.0025, cfgMaxCent, "Centrality"};
+  AxisSpec multAxisZoom = {nBinsMultZoom, cfgMinMult, cfgMaxMult, "Multiplicity FT0M"};
   AxisSpec nTracksAxis = {100, 0., 100., "NTracksGlobal"};
 
   void initCCDB(aod::BCsWithTimestamps::iterator const& bc)
@@ -727,10 +738,10 @@ struct NonPromptCascadeTask {
                            aod::BCsWithTimestamps const&)
   {
     mProcessCounter[1]++;
-    fillMultHistos(collisions);
     zorroAccounting(collisions);
     fillCandidatesVector<TracksExtData>(collisions, tracks, cascades, gCandidatesNT);
     fillDataTable<aod::Cascades>(gCandidatesNT);
+    fillMultHistos(collisions);
   }
   PROCESS_SWITCH(NonPromptCascadeTask, processCascadesData, "process cascades: Data analysis", false);
 };

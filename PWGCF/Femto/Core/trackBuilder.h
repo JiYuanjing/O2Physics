@@ -118,7 +118,8 @@ struct ConfTrackSelection : public o2::framework::ConfigurableGroup {
   std::string prefix = Prefix; // Unique prefix based on the template argument
   // configuration parameters
   o2::framework::Configurable<int> pdgCode{"pdgCode", 2212, "Track PDG code"};
-  o2::framework::Configurable<int> charge{"charge", 1, "Charge of the track (use +/-1 for positive/negative tracks, except He3 needs +/-2)"};
+  o2::framework::Configurable<int> chargeAbs{"chargeAbs", 1, "Absolute value of charge (e.g. 1 for most tracks, 2 for He3)"};
+  o2::framework::Configurable<int> chargeSign{"chargeSign", 1, "Track charge sign: +1 for positive, -1 for negative, 0 for both"};
   // filters for kinematics
   o2::framework::Configurable<float> ptMin{"ptMin", 0.2f, "Minimum pT (GeV/c)"};
   o2::framework::Configurable<float> ptMax{"ptMax", 6.f, "Maximum pT (GeV/c)"};
@@ -127,8 +128,8 @@ struct ConfTrackSelection : public o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum phi"};
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};
   // track selection masks
-  o2::framework::Configurable<o2::aod::femtodatatypes::TrackMaskType> maskLowMomentum{"maskLowMomentum", 2u, "Bitmask for selections below momentum threshold"};
-  o2::framework::Configurable<o2::aod::femtodatatypes::TrackMaskType> maskHighMomentum{"maskHighMomentum", 1u, "Bitmask for selections above momentum threshold"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TrackMaskType> maskLowMomentum{"maskLowMomentum", 0x2u, "Bitmask for selections below momentum threshold"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TrackMaskType> maskHighMomentum{"maskHighMomentum", 0x1u, "Bitmask for selections above momentum threshold"};
   // momentum threshold for PID usage
   o2::framework::Configurable<float> pidThres{"pidThres", 1.2f, "Momentum threshold for using TPCTOF/TOF pid for tracks with large momentum (GeV/c)"};
 };
@@ -258,8 +259,8 @@ const std::unordered_map<TrackSels, std::string> trackSelsToString = {
 class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::TrackMaskType, kTrackSelsMax>
 {
  public:
-  TrackSelection() {}
-  virtual ~TrackSelection() = default;
+  TrackSelection() = default;
+  ~TrackSelection() = default;
 
   template <typename T1, typename T2>
   void configure(T1& config, T2& filter)
@@ -374,7 +375,7 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
     this->evaluateObservable(kTpcKaon, Track.tpcNSigmaKa());
     this->evaluateObservable(kTpcProton, Track.tpcNSigmaPr());
     this->evaluateObservable(kTpcDeuteron, Track.tpcNSigmaDe());
-    this->evaluateObservable(kTpctofTriton, Track.tpcNSigmaTr());
+    this->evaluateObservable(kTpcTriton, Track.tpcNSigmaTr());
     this->evaluateObservable(kTpcHelium, Track.tpcNSigmaHe());
 
     // tof pid
@@ -450,7 +451,7 @@ class TrackBuilder
 {
  public:
   TrackBuilder() = default;
-  virtual ~TrackBuilder() = default;
+  ~TrackBuilder() = default;
 
   template <typename T1, typename T2, typename T3, typename T4>
   void init(T1& config, T2& filter, T3& table, T4& initContext)
@@ -505,8 +506,8 @@ class TrackBuilder
                                    track.pt() * track.sign(),
                                    track.eta(),
                                    track.phi());
+      indexMap.emplace(track.globalIndex(), trackProducts.producedTracks.lastIndex());
     }
-
     if (mProduceTrackMasks) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedTrackMasks(mTrackSelection.getBitmask());
@@ -514,7 +515,6 @@ class TrackBuilder
         trackProducts.producedTrackMasks(static_cast<o2::aod::femtodatatypes::TrackMaskType>(0u));
       }
     }
-
     if (mProduceTrackDcas) {
       trackProducts.producedTrackDcas(track.dcaXY(), track.dcaZ());
     }
@@ -532,7 +532,6 @@ class TrackBuilder
                                         track.beta(),
                                         track.mass());
     }
-
     if (mProduceElectronPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedElectronPids(track.itsNSigmaEl(), track.tpcNSigmaEl(), track.tofNSigmaEl());
@@ -582,7 +581,6 @@ class TrackBuilder
         trackProducts.producedHeliumPids(0, track.tpcNSigmaHe(), track.tofNSigmaHe());
       }
     }
-    indexMap.emplace(track.globalIndex(), trackProducts.producedTracks.lastIndex());
   }
 
   template <modes::Track type, typename T1, typename T2, typename T3, typename T4>
@@ -615,7 +613,87 @@ class TrackBuilder
   bool mProduceHeliumPids = false;
 };
 
+struct TrackBuilderDerivedToDerivedProducts : o2::framework::ProducesGroup {
+  o2::framework::Produces<o2::aod::StoredFTracks> producedTracks;
+  o2::framework::Produces<o2::aod::StoredFTrackMasks> producedTrackMasks;
+};
+
+struct ConfTrackTablesDerivedToDerived : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("TrackTables");
+  o2::framework::Configurable<int> limitTrack1{"limitTrack1", 1, "At least this many tracks of type 1 need to be in the collision"};
+  o2::framework::Configurable<int> limitTrack2{"limitTrack2", 0, "At least this many tracks of type 2 need to be in the collision"};
+};
+
+class TrackBuilderDerivedToDerived
+{
+ public:
+  TrackBuilderDerivedToDerived() = default;
+  ~TrackBuilderDerivedToDerived() = default;
+
+  template <typename T>
+  void init(T& config)
+  {
+    mLimitTrack1 = config.limitTrack1.value;
+    mLimitTrack2 = config.limitTrack2.value;
+  }
+
+  template <typename T1, typename T2, typename T3, typename T4, typename T5>
+  bool collisionHasTooFewTracks(T1& col, T2& /*trackTable*/, T3& partitionTrack1, T4& partitionTrack2, T5& cache)
+  {
+    auto trackSlice1 = partitionTrack1->sliceByCached(o2::aod::femtobase::stored::fColId, col.globalIndex(), cache);
+    auto trackSlice2 = partitionTrack2->sliceByCached(o2::aod::femtobase::stored::fColId, col.globalIndex(), cache);
+    if (trackSlice1.size() >= mLimitTrack1 && trackSlice2.size() >= mLimitTrack2) {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+  void processTracks(T1& col, T2& /*trackTable*/, T3& partitionTrack1, T4& partitionTrack2, T5& indexMap, T6& cache, T7& newTrackTable, T8& newCollisionTable)
+  {
+    auto trackSlice1 = partitionTrack1->sliceByCached(o2::aod::femtobase::stored::fColId, col.globalIndex(), cache);
+    auto trackSlice2 = partitionTrack2->sliceByCached(o2::aod::femtobase::stored::fColId, col.globalIndex(), cache);
+
+    for (auto const& track : trackSlice1) {
+      this->fillTrack(track, newTrackTable, newCollisionTable, indexMap);
+    }
+    for (auto const& track : trackSlice2) {
+      this->fillTrack(track, newTrackTable, newCollisionTable, indexMap);
+    }
+  }
+
+  template <typename T1, typename T2, typename T3, typename T4>
+  void fillTrack(T1 const& track, T2& trackProducts, T3& collisionProducts, T4& indexMap)
+  {
+    trackProducts.producedTracks(collisionProducts.producedCollision.lastIndex(),
+                                 track.signedPt(),
+                                 track.eta(),
+                                 track.phi());
+    trackProducts.producedTrackMasks(track.mask());
+    indexMap.emplace(track.globalIndex(), trackProducts.producedTracks.lastIndex());
+  }
+
+  template <typename T1, typename T2, typename T3, typename T4>
+  int64_t getDaughterIndex(const T1& daughter, T2& trackProducts, T3& collisionProducts, T4& indexMap)
+  {
+    auto result = utils::getIndex(daughter.globalIndex(), indexMap);
+    if (result) {
+      return result.value();
+    } else {
+      this->fillTrack(daughter, trackProducts, collisionProducts, indexMap);
+      int64_t idx = trackProducts.producedTracks.lastIndex();
+      indexMap.emplace(daughter.globalIndex(), idx);
+      return idx;
+    }
+  }
+
+ private:
+  int mLimitTrack1 = 0;
+  int mLimitTrack2 = 0;
+};
+
 } // namespace trackbuilder
+//
 } // namespace o2::analysis::femto
 
 #endif // PWGCF_FEMTO_CORE_TRACKBUILDER_H_

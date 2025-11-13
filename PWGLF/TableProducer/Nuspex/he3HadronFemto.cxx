@@ -23,16 +23,17 @@
 #include "Common/Core/PID/TPCPIDResponse.h"
 #include "Common/Core/RecoDecay.h"
 #include "Common/Core/TrackSelection.h"
+#include "Common/Core/Zorro.h"
+#include "Common/Core/ZorroSummary.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/PIDResponseITS.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/TableProducer/PID/pidTOFBase.h"
-#include "EventFiltering/Zorro.h"
-#include "EventFiltering/ZorroSummary.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsParameters/GRPMagField.h"
@@ -77,8 +78,8 @@ using McIter = aod::McParticles::iterator;
 using CollBracket = o2::math_utils::Bracket<int>;
 using CollisionsFull = soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0As, aod::CentFT0Cs, aod::FT0Mults>;
 using CollisionsFullMC = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::CentFT0As, aod::CentFT0Cs, aod::FT0Mults>;
-using TrackCandidates = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullPi, aod::pidTOFFullPi, aod::TOFSignal, aod::TOFEvTime>;
-using TrackCandidatesMC = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullPi, aod::pidTOFFullPi, aod::TOFSignal, aod::TOFEvTime, aod::McTrackLabels>;
+using TrackCandidates = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullPi, aod::pidTOFFullPi, aod::pidTPCFullKa, aod::pidTOFFullKa, aod::TOFSignal, aod::TOFEvTime>;
+using TrackCandidatesMC = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullPi, aod::pidTOFFullPi, aod::pidTPCFullKa, aod::pidTOFFullKa, aod::TOFSignal, aod::TOFEvTime, aod::McTrackLabels>;
 
 namespace
 {
@@ -147,7 +148,12 @@ struct He3HadCandidate {
   float chi2TPCHe3 = -10.f;
   float chi2TPCHad = -10.f;
   float nSigmaHe3 = -10.f;
-  float nSigmaHad = -10.f;
+  float nSigmaTPCHadPi = -10.f;
+  float nSigmaTPCHadKa = -10.f;
+  float nSigmaTPCHadPr = -10.f;
+  float nSigmaTOFHadPi = -10.f;
+  float nSigmaTOFHadKa = -10.f;
+  float nSigmaTOFHadPr = -10.f;
   uint32_t pidtrkHe3 = 0xFFFFF; // PID in tracking
   uint32_t pidtrkHad = 0xFFFFF;
   float massTOFHe3 = -10;
@@ -637,7 +643,12 @@ struct he3HadronFemto {
 
     he3Hadcand.nTPCClustersHe3 = trackHe3.tpcNClsFound();
     he3Hadcand.nSigmaHe3 = computeNSigmaHe3(trackHe3);
-    he3Hadcand.nSigmaHad = computeTPCNSigmaHadron(trackHad);
+    he3Hadcand.nSigmaTPCHadPi = trackHad.tpcNSigmaPi();
+    he3Hadcand.nSigmaTPCHadKa = trackHad.tpcNSigmaKa();
+    he3Hadcand.nSigmaTPCHadPr = trackHad.tpcNSigmaPr();
+    he3Hadcand.nSigmaTOFHadPi = trackHad.tofNSigmaPi();
+    he3Hadcand.nSigmaTOFHadKa = trackHad.tofNSigmaKa();
+    he3Hadcand.nSigmaTOFHadPr = trackHad.tofNSigmaPr();
 
     he3Hadcand.chi2TPCHe3 = trackHe3.tpcChi2NCl();
     he3Hadcand.chi2TPCHad = trackHad.tpcChi2NCl();
@@ -790,7 +801,12 @@ struct he3HadronFemto {
       he3Hadcand.momHadTPC,
       he3Hadcand.nTPCClustersHe3,
       he3Hadcand.nSigmaHe3,
-      he3Hadcand.nSigmaHad,
+      he3Hadcand.nSigmaTPCHadPi,
+      he3Hadcand.nSigmaTPCHadKa,
+      he3Hadcand.nSigmaTPCHadPr,
+      he3Hadcand.nSigmaTOFHadPi,
+      he3Hadcand.nSigmaTOFHadKa,
+      he3Hadcand.nSigmaTOFHadPr,
       he3Hadcand.chi2TPCHe3,
       he3Hadcand.chi2TPCHad,
       he3Hadcand.massTOFHe3,
