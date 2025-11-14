@@ -3565,8 +3565,6 @@ struct AnalysisDileptonTrack {
   Configurable<float> fConfigDileptonRapCutAbs{"cfgDileptonRapCutAbs", 1.0, "Rap cut for dileptons used in the triplet vertexing"};
   Configurable<std::string> fConfigHistogramSubgroups{"cfgDileptonTrackHistogramsSubgroups", "invmass,vertexing", "Comma separated list of dilepton-track histogram subgroups"};
   Configurable<std::string> fConfigAddJSONHistograms{"cfgAddJSONHistograms", "", "Histograms in JSON format"};
-  Configurable<int> fConfigMixingDepth{"cfgMixingDepth", 5, "Event mixing pool depth"};
-
   Configurable<bool> fConfigUseRemoteField{"cfgUseRemoteField", false, "Chose whether to fetch the magnetic field from ccdb or set it manually"};
   Configurable<std::string> fConfigGRPmagPath{"cfgGrpmagPath", "GLO/Config/GRPMagField", "CCDB path of the GRPMagField object"};
   Configurable<float> fConfigMagField{"cfgMagField", 5.0f, "Manually set magnetic field"};
@@ -3617,9 +3615,6 @@ struct AnalysisDileptonTrack {
   float* fValuesDilepton;
   float* fValuesHadron;
   HistogramManager* fHistMan;
-
-  //Yuanjing added for femto
-  NoBinningPolicy<aod::dqanalysisflags::MixingHash> fHashBin;
 
   std::vector<MCSignal*> fRecMCSignals;
   std::vector<MCSignal*> fGenMCSignals;
