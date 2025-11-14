@@ -605,6 +605,14 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("pJpsi_debug4")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_Jpsifemto_tight"));
+    return cut;
+  }
+
   if (!nameStr.compare("jpsiPbPbdebugCuts0")) {
      cut->AddCut(GetAnalysisCut("jpsiKineSkimmed"));
      cut->AddCut(GetAnalysisCut("LooseGlobalTrackRun3_PbPb2"));
