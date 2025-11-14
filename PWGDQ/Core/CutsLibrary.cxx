@@ -565,6 +565,14 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("jpsiO2MCdebugCuts14_tight")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_Jpsifemto_tight"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaSkewed"));
+    return cut;
+  }
+
   if (!nameStr.compare("jpsiO2MCdebugCuts14andDCA")) {
     cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
     cut->AddCut(GetAnalysisCut("electronStandardQualityForO2MCdebug"));
@@ -5070,6 +5078,13 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   if (!nameStr.compare("PrimaryTrack_Jpsifemto")) {
     cut->AddCut(VarManager::kTrackDCAxy, -0.5, 0.5);
     cut->AddCut(VarManager::kTrackDCAz, -0.5, 0.5);
+    return cut;
+  }
+
+  // add by Yuanjing 
+  if (!nameStr.compare("PrimaryTrack_Jpsifemto_tight")) {
+    cut->AddCut(VarManager::kTrackDCAxy, -0.02, 0.02);
+    cut->AddCut(VarManager::kTrackDCAz, -0.02, 0.02);
     return cut;
   }
 
