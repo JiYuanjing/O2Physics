@@ -1099,7 +1099,6 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     // cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF6"));
     cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF3"));
     cut->AddCut(GetAnalysisCut("protonPVcut_tight"));
-    return cut;
 
     return cut;
   }
@@ -4925,7 +4924,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
     cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut->AddCut(VarManager::kTPCncls, 80, 161.);
-    cut->AddCut(VarManager::kITSncls, 3.5, 7.5);
+    // cut->AddCut(VarManager::kITSncls, 3.5, 7.5);
+    cut->AddCut(VarManager::kITSncls, 5.5, 7.5);
     return cut;
   }
 
@@ -5113,10 +5113,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   // add by Yuanjing 
   if (!nameStr.compare("PrimaryTrack_Jpsifemto_tight")) {
-    cut->AddCut(VarManager::kTrackDCAxy, -0.002, 0.002);
-    cut->AddCut(VarManager::kTrackDCAz, -0.002, 0.002);
-    cut->AddCut(VarManager::kITSncls, 6.5, 7.5, false, VarManager::kPt, 0., 1.5, false);
-    cut->AddCut(VarManager::kITSncls, 4.5, 7.5, false, VarManager::kPt, 1.5, 1e+10, false);
+    cut->AddCut(VarManager::kTrackDCAxy, -0.001, 0.001);
+    cut->AddCut(VarManager::kTrackDCAz, -0.001, 0.001);
+    // cut->AddCut(VarManager::kITSncls, 6.5, 7.5, false, VarManager::kPt, 0., 1.5, false);
+    // cut->AddCut(VarManager::kITSncls, 4.5, 7.5, false, VarManager::kPt, 1.5, 1e+10, false);
+    cut->AddCut(VarManager::kITSncls, 6.5, 7.5);
 
     return cut;
   }
