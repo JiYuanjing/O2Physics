@@ -1195,6 +1195,7 @@ class VarManager : public TObject
   static void FillTripletVertexing(C const& collision, T const& t1, T const& t2, T const& t3, PairCandidateType tripletType, float* values = nullptr);
   template <int candidateType, uint32_t collFillMap, uint32_t fillMap, typename C, typename T1>
   static void FillDileptonTrackVertexing(C const& collision, T1 const& lepton1, T1 const& lepton2, T1 const& track, float* values);
+  // static double GetKStar(const ROOT::Math::PtEtaPhiMVector &a, const ROOT::Math::PtEtaPhiMVector &b);
   template <typename T1, typename T2>
   static void FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   //Femto: Yuanjing added Feb 1, 2025
@@ -5253,6 +5254,23 @@ void VarManager::FillZDC(T const& zdc, float* values)
   values[kTimeZPA] = zdc.timeZPA();
   values[kTimeZPC] = zdc.timeZPC();
 }
+// a 和 b 是两个四动量（J/psi 和 proton）
+// double VarManager::GetKStar(const ROOT::Math::PtEtaPhiMVector &a,
+//                 const ROOT::Math::PtEtaPhiMVector &b)
+// {
+//     // pair 四动量
+//     auto pair = a + b;
+//
+//     // boost 到 pair c.m. 系
+//     TVector3 beta(pair.Px()/pair.E(),
+//                   pair.Py()/pair.E(),
+//                   pair.Pz()/pair.E());
+//
+//     auto a_cm = ROOT::Math::VectorUtil::boost(a, -beta);
+//
+//     // k* = |p| in CM
+//     return a_cm.P();
+// }
 
 template <typename T1, typename T2>
 void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values, float hadronMass)
@@ -5278,6 +5296,7 @@ void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float*
     double Pinv = v12.M();
     double Q1 = (dilepton.mass() * dilepton.mass() - hadronMass * hadronMass) / Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1 * Q1 - v12_Qvect.M2()) / 2.0;
+    // values[kDileptonHadronKstar] = VarManager::GetKStar(v1, v2);
 
   }
   if (fgUsedVars[kCosChi] || fgUsedVars[kECWeight] || fgUsedVars[kCosTheta] || fgUsedVars[kEWeight_before] || fgUsedVars[kPtDau] || fgUsedVars[kEtaDau] || fgUsedVars[kPhiDau]) {
@@ -5335,11 +5354,12 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
     values[kMassDau] = hadronMass;
     values[kDeltaMass] = v12.M() - dilepton.mass();
 
-    // Yuanjing Ji added Dec 22, 2024
+    // // Yuanjing Ji added Dec 22, 2024
     ROOT::Math::PtEtaPhiMVector v12_Qvect = v1 - v2;
     double Pinv = v12.M();
     double Q1 = ( dilepton.mass()*dilepton.mass() - hadronMass*hadronMass )/Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
+    // values[kDileptonHadronKstar] = VarManager::GetKStar(v1, v2);
 
     // fill hadron info
     values[kPt] = hadron.pt();
@@ -5391,6 +5411,7 @@ void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& track
     double mcPinv = mcv12.M();
     double mcQ1 = ( mcv1.M()*mcv1.M() - mcmass3*mcmass3)/mcPinv;
     double mcKstar = sqrt(mcQ1*mcQ1-mcv12_Qvect.M2())/2.0;
+    // double mcKstar = VarManager::GetKStar(mcv1,mcv2);
     values[kJpsiPMcKstar] = mcKstar;
 
     values[kJpsiPMcWt] = 1.0; // for data and default
@@ -5467,6 +5488,7 @@ void VarManager::FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 
     double Pinv = v12.M();
     double Q1 = ( dilepton.M()*dilepton.M() - hadronMass*hadronMass )/Pinv;
     values[kDileptonHadronKstar] = sqrt(Q1*Q1-v12_Qvect.M2())/2.0;
+    // values[kDileptonHadronKstar] = VarManager::GetKStar(v1, v2);
 
     // fill hadron info
     values[kPt] = hadron.pt();

@@ -4916,8 +4916,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   }
 
   if (!nameStr.compare("protonPVcut_tight")) {
-    cut->AddCut(VarManager::kTrackDCAxy, -0.1, 0.1);
-    cut->AddCut(VarManager::kTrackDCAz, -0.15, 0.15);
+    cut->AddCut(VarManager::kTrackDCAxy, -0.005, 0.005);
+    cut->AddCut(VarManager::kTrackDCAz, -0.005, 0.005);
     // cut->AddCut(VarManager::kPt, 0.4, 3);
     cut->AddCut(VarManager::kPin, 0.25, 3);
     cut->AddCut(VarManager::kEta, -0.9, 0.9);
@@ -5884,6 +5884,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   if (!nameStr.compare("protonPID_TPCnTOF3")) {
     cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5);
     cut->AddCut(VarManager::kTOFnSigmaPr, -2.5, 2.5, false, VarManager::kPin, 0.9, 1e+10, false);
+    return cut;
+  }
+  if (!nameStr.compare("protonPID_TPCnTOF3_tight")) {
+    cut->AddCut(VarManager::kTPCnSigmaPr, -2., 2.);
+    cut->AddCut(VarManager::kTOFnSigmaPr, -2., 2., false, VarManager::kPin, 0.8, 1e+10, false);
     return cut;
   }
 
