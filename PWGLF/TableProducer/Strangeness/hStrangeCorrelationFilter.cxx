@@ -31,9 +31,9 @@
 #include "Common/DataModel/TrackSelectionTables.h"
 
 #include "CCDB/BasicCCDBManager.h"
-#include "Framework/ASoAHelpers.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
+#include <Framework/Configurable.h>
 
 #include "TF1.h"
 #include <TPDGCode.h>
@@ -49,8 +49,8 @@ using namespace o2::framework::expressions;
 #define BIT_CHECK(var, nbit) ((var) & (1 << (nbit)))
 
 struct HStrangeCorrelationFilter {
-  const float ctauxiPDG = 4.91;     // from PDG
-  const float ctauomegaPDG = 2.461; // from PDG
+  const float ctauxi = 4.91;     // from PDG
+  const float ctauomega = 2.461; // from PDG
 
   Service<o2::ccdb::BasicCCDBManager> ccdb;
 
@@ -59,12 +59,15 @@ struct HStrangeCorrelationFilter {
   // master analysis switches
   Configurable<bool> doPPAnalysis{"doPPAnalysis", true, "if in pp, set to true"};
   Configurable<bool> useParameterization{"useParameterization", true, "ture for parameterization method, false for hist method"};
+  Configurable<float> minPtForParam{"minPtForParam", 0.2f, "min pt for parameterization method"};
+  Configurable<float> maxPtForParam{"maxPtForParam", 14.5f, "max pt for parameterization method"};
   // Operational
   Configurable<bool> fillTableOnlyWithCompatible{"fillTableOnlyWithCompatible", true, "pre-apply dE/dx, broad mass window in table filling"};
   Configurable<float> strangedEdxNSigmaLoose{"strangedEdxNSigmaLoose", 5, "Nsigmas for strange decay daughters"};
   Configurable<float> strangedEdxNSigma{"strangedEdxNSigma", 4, "Nsigmas for strange decay daughters"};
   Configurable<float> strangedEdxNSigmaTight{"strangedEdxNSigmaTight", 3, "Nsigmas for strange decay daughters"};
   Configurable<std::string> zorroMask{"zorroMask", "", "zorro trigger class to select on (empty: none)"};
+  Configurable<float> nSigmaNearXiMassCenter{"nSigmaNearXiMassCenter", 0, "for Oemga analysis only, to check if candidate mass is around Xi"};
 
   // used for event selections in Pb-Pb
   Configurable<int> cfgCutOccupancyHigh{"cfgCutOccupancyHigh", 3000, "High cut on TPC occupancy"};
@@ -75,6 +78,8 @@ struct HStrangeCorrelationFilter {
     Configurable<float> zVertexCut{"zVertexCut", 10, "Cut on PV position"};
     Configurable<bool> selectINELgtZERO{"selectINELgtZERO", true, "select INEL>0 events"};
     Configurable<bool> requireAllGoodITSLayers{"requireAllGoodITSLayers", false, " require that in the event all ITS are good"};
+    Configurable<float> minCentPercent{"minCentPercent", 0, "minimum centrality percentage"};
+    Configurable<float> maxCentPercent{"maxCentPercent", 100, "maximum centrality percentage"};
   } eventSelections;
 
   struct : ConfigurableGroup {
@@ -136,6 +141,10 @@ struct HStrangeCorrelationFilter {
     Configurable<float> dcaBachtopv{"dcaBachtopv", 0.1, "dcaBachtopv"};
     Configurable<float> cascV0masswindow{"cascV0masswindow", 0.01, "cascV0masswindow"};
     Configurable<float> cascMindcav0topv{"cascMindcav0topv", 0.01, "cascMindcav0topv"};
+
+    // pt Range for pt dep cuts
+    Configurable<float> highPtForCascDaugPtDep{"highPtForCascDaugPtDep", 4.0, "high pt range for pt dep cuts"};
+    Configurable<float> lowPtForCascDaugPtDep{"lowPtForCascDaugPtDep", 1.0, "low pt range for pt dep cuts"};
   } systCuts;
   struct : ConfigurableGroup {
     // cascade selections in PbPb
@@ -236,6 +245,17 @@ struct HStrangeCorrelationFilter {
   OutputObj<ZorroSummary> zorroSummary{"zorroSummary"};
   int mRunNumber;
 
+  struct TriggCandidate {
+    float pt;
+    int collisionId;
+    int trackId;
+    bool isPhysicalPrimary;
+    float origPt;
+  };
+  TriggCandidate thisTrigg;
+
+  std::vector<TriggCandidate> triggerCandidates;
+
   void init(InitContext const&)
   {
     zorroSummary.setObject(zorro.getZorroSummary());
@@ -325,7 +345,7 @@ struct HStrangeCorrelationFilter {
     if (std::abs(collision.posZ()) > eventSelections.zVertexCut) {
       return false;
     }
-    if (collision.centFT0M() > 100 || collision.centFT0M() < 0) {
+    if (collision.centFT0M() > eventSelections.maxCentPercent || collision.centFT0M() < eventSelections.minCentPercent) {
       return false;
     }
     if (!collision.isInelGt0() && eventSelections.selectINELgtZERO) {
@@ -442,13 +462,13 @@ struct HStrangeCorrelationFilter {
 
     bool physicalPrimary = false;
     float origPt = -1;
-    float pdgCode = -9999;
+    float code = -9999;
     if constexpr (requires { assoc.mcParticle(); }) {
       if (assoc.has_mcParticle()) {
         auto mcParticle = assoc.mcParticle();
         physicalPrimary = mcParticle.isPhysicalPrimary();
         origPt = mcParticle.pt();
-        pdgCode = mcParticle.pdgCode();
+        code = mcParticle.pdgCode();
       }
     }
 
@@ -457,7 +477,7 @@ struct HStrangeCorrelationFilter {
       physicalPrimary,
       assoc.globalIndex(),
       origPt,
-      pdgCode);
+      code);
     assocPID(
       nSigmaTPCTOF[0],
       nSigmaTPCTOF[1],
@@ -472,7 +492,7 @@ struct HStrangeCorrelationFilter {
 
   // cascadeselection in PbPb
   template <typename TCascade>
-  bool CascadeSelectedPbPb(TCascade casc, float pvx, float pvy, float pvz)
+  bool cascadeSelectedPbPb(TCascade casc, float pvx, float pvy, float pvz)
   {
     // bachBaryonCosPA
     if (casc.bachBaryonCosPA() < MorePbPbsystCuts.bachBaryonCosPA)
@@ -485,9 +505,9 @@ struct HStrangeCorrelationFilter {
       return false;
     // dcacascdaughters
     float ptDepCut = MorePbPbsystCuts.dcaCacsDauPar0;
-    if (casc.pt() > 1 && casc.pt() < 4)
+    if (casc.pt() > systCuts.lowPtForCascDaugPtDep && casc.pt() < systCuts.highPtForCascDaugPtDep)
       ptDepCut = MorePbPbsystCuts.dcaCacsDauPar1;
-    else if (casc.pt() > 4)
+    else if (casc.pt() > systCuts.highPtForCascDaugPtDep)
       ptDepCut = MorePbPbsystCuts.dcaCacsDauPar2;
     if (casc.dcacascdaughters() > ptDepCut)
       return false;
@@ -515,23 +535,37 @@ struct HStrangeCorrelationFilter {
   // for real data processing
   void processTriggers(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs, aod::PVMults>::iterator const& collision, soa::Filtered<FullTracks> const& tracks, aod::BCsWithTimestamps const&)
   {
-    // Load parameters for sideband subtraction
-    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
+    triggerCandidates.clear();
     if (((doPPAnalysis && !isCollisionSelected(collision))) || (!doPPAnalysis && !isCollisionSelectedPbPb(collision))) {
       return;
     }
 
     /// _________________________________________________
     /// Step 1: Populate table with trigger tracks
+    double leadingPt = -1.;
+    int leadingId = -1;
     for (auto const& track : tracks) {
       if (!isValidTrigger(track))
         continue;
+      thisTrigg.pt = track.pt();
+      thisTrigg.trackId = track.globalIndex();
+      thisTrigg.collisionId = track.collisionId();
+      thisTrigg.isPhysicalPrimary = false; // if you decide to check real data for primaries, you'll have a hard time
+      thisTrigg.origPt = 0;
+      triggerCandidates.push_back(thisTrigg);
+      if (track.pt() > leadingPt) {
+        leadingPt = track.pt();
+        leadingId = track.globalIndex();
+      }
+    }
+    for (auto const& TriggCandidate : triggerCandidates) {
+      bool isLeading = (leadingId == TriggCandidate.trackId);
       triggerTrack(
-        track.collisionId(),
-        false, // if you decide to check real data for primaries, you'll have a hard time
-        track.globalIndex(),
-        0);
+        TriggCandidate.collisionId,
+        TriggCandidate.isPhysicalPrimary,
+        TriggCandidate.trackId,
+        TriggCandidate.origPt,
+        isLeading);
       triggerTrackExtra(1);
     }
   }
@@ -539,30 +573,41 @@ struct HStrangeCorrelationFilter {
   // for MC processing
   void processTriggersMC(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs, aod::PVMults>::iterator const& collision, soa::Filtered<FullTracksMC> const& tracks, aod::McParticles const&, aod::BCsWithTimestamps const&)
   {
-    // Load parameters for sideband subtraction
-    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
+    triggerCandidates.clear();
     if (((doPPAnalysis && !isCollisionSelected(collision))) || (!doPPAnalysis && !isCollisionSelectedPbPb(collision))) {
       return;
     }
 
     /// _________________________________________________
     /// Step 1: Populate table with trigger tracks
+    double leadingPt = -1.;
+    int leadingId = -1;
     for (auto const& track : tracks) {
       if (!isValidTrigger(track))
         continue;
-      bool physicalPrimary = false;
-      float origPt = -1;
+      thisTrigg.pt = track.pt();
+      thisTrigg.trackId = track.globalIndex();
+      thisTrigg.collisionId = track.collisionId();
       if (track.has_mcParticle()) {
         auto mcParticle = track.mcParticle();
-        physicalPrimary = mcParticle.isPhysicalPrimary();
-        origPt = mcParticle.pt();
+        thisTrigg.isPhysicalPrimary = mcParticle.isPhysicalPrimary();
+        thisTrigg.origPt = mcParticle.pt();
       }
+      triggerCandidates.push_back(thisTrigg);
+      if (track.pt() > leadingPt) {
+        leadingPt = track.pt();
+        leadingId = track.globalIndex();
+      }
+    }
+
+    for (auto const& TriggCandidate : triggerCandidates) {
+      bool isLeading = (leadingId == TriggCandidate.trackId);
       triggerTrack(
-        track.collisionId(),
-        physicalPrimary,
-        track.globalIndex(),
-        origPt);
+        TriggCandidate.collisionId,
+        TriggCandidate.isPhysicalPrimary,
+        TriggCandidate.trackId,
+        TriggCandidate.origPt,
+        isLeading);
       triggerTrackExtra(1);
     }
   }
@@ -571,13 +616,12 @@ struct HStrangeCorrelationFilter {
   {
     // Load parameters for sideband subtraction
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
     // Perform basic event selection
     if (!collision.sel8()) {
       return;
     }
     // No need to correlate stuff that's in far collisions
-    if (std::abs(collision.posZ()) > 10.0) {
+    if (std::abs(collision.posZ()) > eventSelections.zVertexCut) {
       return;
     }
     if (zorroMask.value != "") {
@@ -600,13 +644,12 @@ struct HStrangeCorrelationFilter {
   {
     // Load parameters for sideband subtraction
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
     // Perform basic event selection
     if (!collision.sel8()) {
       return;
     }
     // No need to correlate stuff that's in far collisions
-    if (std::abs(collision.posZ()) > 10.0) {
+    if (std::abs(collision.posZ()) > eventSelections.zVertexCut) {
       return;
     }
     if (zorroMask.value != "") {
@@ -629,13 +672,12 @@ struct HStrangeCorrelationFilter {
   {
     // Load parameters for sideband subtraction
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
     // Perform basic event selection
     if (!collision.sel8()) {
       return;
     }
     // No need to correlate stuff that's in far collisions
-    if (std::abs(collision.posZ()) > 10.0) {
+    if (std::abs(collision.posZ()) > eventSelections.zVertexCut) {
       return;
     }
     if (zorroMask.value != "") {
@@ -657,13 +699,12 @@ struct HStrangeCorrelationFilter {
   {
     // Load parameters for sideband subtraction
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    initParametersFromCCDB(bc);
     // Perform basic event selection
     if (!collision.sel8()) {
       return;
     }
     // No need to correlate stuff that's in far collisions
-    if (std::abs(collision.posZ()) > 10.0) {
+    if (std::abs(collision.posZ()) > eventSelections.zVertexCut) {
       return;
     }
     if (zorroMask.value != "") {
@@ -791,7 +832,7 @@ struct HStrangeCorrelationFilter {
         // Load parameters for sideband subtraction
         initParametersFromCCDB(bc);
         // simplified handling: calculate NSigma in mass here
-        if (v0.pt() < 0.2f || v0.pt() > 14.5f) {
+        if (v0.pt() < minPtForParam || v0.pt() > maxPtForParam) {
           massNSigmaK0Short = (v0.mK0Short() - hK0ShortMean->GetBinContent(hK0ShortMean->FindBin(v0.pt()))) / (hK0ShortWidth->GetBinContent(hK0ShortWidth->FindBin(v0.pt())) + 1e-6);
           massNSigmaLambda = (v0.mLambda() - hLambdaMean->GetBinContent(hLambdaMean->FindBin(v0.pt()))) / (hLambdaWidth->GetBinContent(hLambdaMean->FindBin(v0.pt())) + 1e-6);
           massNSigmaAntiLambda = (v0.mAntiLambda() - hLambdaMean->GetBinContent(hLambdaMean->FindBin(v0.pt()))) / (hLambdaWidth->GetBinContent(hLambdaMean->FindBin(v0.pt())) + 1e-6);
@@ -933,7 +974,7 @@ struct HStrangeCorrelationFilter {
         // Load parameters for sideband subtraction
         initParametersFromCCDB(bc);
         // simplified handling: calculate NSigma in mass here
-        if (v0.pt() < 0.2f || v0.pt() > 14.5f) {
+        if (v0.pt() < minPtForParam || v0.pt() > maxPtForParam) {
           massNSigmaK0Short = (v0.mK0Short() - hK0ShortMean->GetBinContent(hK0ShortMean->FindBin(v0.pt()))) / (hK0ShortWidth->GetBinContent(hK0ShortWidth->FindBin(v0.pt())) + 1e-6);
           massNSigmaLambda = (v0.mLambda() - hLambdaMean->GetBinContent(hLambdaMean->FindBin(v0.pt()))) / (hLambdaWidth->GetBinContent(hLambdaMean->FindBin(v0.pt())) + 1e-6);
           massNSigmaAntiLambda = (v0.mAntiLambda() - hLambdaMean->GetBinContent(hLambdaMean->FindBin(v0.pt()))) / (hLambdaWidth->GetBinContent(hLambdaMean->FindBin(v0.pt())) + 1e-6);
@@ -948,11 +989,11 @@ struct HStrangeCorrelationFilter {
       bool trueLambda = false;
       bool trueAntiLambda = false;
       v0PhysicalPrimary = v0.isPhysicalPrimary();
-      if (v0.pdgCode() == 310)
+      if (v0.pdgCode() == PDG_t::kK0Short)
         trueK0Short = true;
-      if (v0.pdgCode() == 3122)
+      if (v0.pdgCode() == PDG_t::kLambda0)
         trueLambda = true;
-      if (v0.pdgCode() == -3122)
+      if (v0.pdgCode() == PDG_t::kLambda0Bar)
         trueAntiLambda = true;
       if (compatibleK0Short && (!doTrueSelectionInMass || (trueK0Short && v0PhysicalPrimary)))
         histos.fill(HIST("h3dMassK0Short"), v0.pt(), v0.mK0Short(), cent);
@@ -1008,7 +1049,7 @@ struct HStrangeCorrelationFilter {
         continue;
       if (negTrackCast.tpcNClsCrossedRows() < systCuts.minTPCNCrossedRows)
         continue;
-      if (!doPPAnalysis && !CascadeSelectedPbPb(casc, collision.posX(), collision.posY(), collision.posZ()))
+      if (!doPPAnalysis && !cascadeSelectedPbPb(casc, collision.posX(), collision.posY(), collision.posZ()))
         continue;
       // check dE/dx compatibility
       int compatibleXiMinus = 0;
@@ -1017,8 +1058,8 @@ struct HStrangeCorrelationFilter {
       int compatibleOmegaPlus = 0;
       float cascpos = std::hypot(casc.x() - collision.posX(), casc.y() - collision.posY(), casc.z() - collision.posZ());
       float cascptotmom = std::hypot(casc.px(), casc.py(), casc.pz());
-      float ctauXi = o2::constants::physics::MassXiMinus * cascpos / ((cascptotmom + 1e-13) * ctauxiPDG);
-      float ctauOmega = o2::constants::physics::MassOmegaMinus * cascpos / ((cascptotmom + 1e-13) * ctauomegaPDG);
+      float ctauXi = o2::constants::physics::MassXiMinus * cascpos / ((cascptotmom + 1e-13) * ctauxi);
+      float ctauOmega = o2::constants::physics::MassOmegaMinus * cascpos / ((cascptotmom + 1e-13) * ctauomega);
 
       if (std::abs(posTrackCast.tpcNSigmaPr()) < strangedEdxNSigmaLoose && std::abs(negTrackCast.tpcNSigmaPi()) < strangedEdxNSigmaLoose && std::abs(bachTrackCast.tpcNSigmaPi()) < strangedEdxNSigmaLoose && casc.sign() < 0) {
         if (doPPAnalysis || (std::abs(casc.dcabachtopv()) > MorePbPbsystCuts.dcaBachToPV && std::abs(casc.dcapostopv()) > MorePbPbsystCuts.dcaBaryonToPV &&
@@ -1115,7 +1156,7 @@ struct HStrangeCorrelationFilter {
       } else {
         // Load parameters for sideband subtraction
         initParametersFromCCDB(bc);
-        if (casc.pt() < 0.2f || casc.pt() > 14.5f) {
+        if (casc.pt() < minPtForParam || casc.pt() > maxPtForParam) {
           massNSigmaXi = (casc.mXi() - hXiMean->GetBinContent(hXiMean->FindBin(casc.pt()))) / (hXiWidth->GetBinContent(hXiWidth->FindBin(casc.pt())) + 1e-6);
           massNSigmaOmega = (casc.mOmega() - hOmegaMean->GetBinContent(hOmegaMean->FindBin(casc.pt()))) / (hOmegaWidth->GetBinContent(hOmegaWidth->FindBin(casc.pt())) + 1e-6);
         } else {
@@ -1127,15 +1168,15 @@ struct HStrangeCorrelationFilter {
         histos.fill(HIST("h3dMassXiMinus"), casc.pt(), casc.mXi(), cent);
       if (compatibleXiPlus)
         histos.fill(HIST("h3dMassXiPlus"), casc.pt(), casc.mXi(), cent);
-      if (compatibleOmegaMinus)
+      if (compatibleOmegaMinus && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)
         histos.fill(HIST("h3dMassOmegaMinus"), casc.pt(), casc.mOmega(), cent);
-      if (compatibleOmegaPlus)
+      if (compatibleOmegaPlus && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)
         histos.fill(HIST("h3dMassOmegaPlus"), casc.pt(), casc.mOmega(), cent);
 
       if (!fillTableOnlyWithCompatible ||
           ( // start major condition check
             ((compatibleXiMinus > 0 || compatibleXiPlus > 0) && std::abs(massNSigmaXi) < maxMassNSigma) ||
-            ((compatibleOmegaMinus > 0 || compatibleOmegaPlus > 0) && std::abs(massNSigmaOmega) < maxMassNSigma)) // end major condition check
+            ((compatibleOmegaMinus > 0 || compatibleOmegaPlus > 0) && std::abs(massNSigmaOmega) < maxMassNSigma && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)) // end major condition check
       ) {
         assocCascades(casc.collisionId(), casc.globalIndex(),
                       compatibleXiMinus, compatibleXiPlus, compatibleOmegaMinus, compatibleOmegaPlus,
@@ -1180,7 +1221,7 @@ struct HStrangeCorrelationFilter {
         continue;
       if (negTrackCast.tpcNClsCrossedRows() < systCuts.minTPCNCrossedRows)
         continue;
-      if (!doPPAnalysis && !CascadeSelectedPbPb(casc, collision.posX(), collision.posY(), collision.posZ()))
+      if (!doPPAnalysis && !cascadeSelectedPbPb(casc, collision.posX(), collision.posY(), collision.posZ()))
         continue;
 
       // check dE/dx compatibility
@@ -1190,8 +1231,8 @@ struct HStrangeCorrelationFilter {
       int compatibleOmegaPlus = 0;
       float cascpos = std::hypot(casc.x() - collision.posX(), casc.y() - collision.posY(), casc.z() - collision.posZ());
       float cascptotmom = std::hypot(casc.px(), casc.py(), casc.pz());
-      float ctauXi = o2::constants::physics::MassXiMinus * cascpos / ((cascptotmom + 1e-13) * ctauxiPDG);
-      float ctauOmega = o2::constants::physics::MassOmegaMinus * cascpos / ((cascptotmom + 1e-13) * ctauomegaPDG);
+      float ctauXi = o2::constants::physics::MassXiMinus * cascpos / ((cascptotmom + 1e-13) * ctauxi);
+      float ctauOmega = o2::constants::physics::MassOmegaMinus * cascpos / ((cascptotmom + 1e-13) * ctauomega);
 
       if (std::abs(posTrackCast.tpcNSigmaPr()) < strangedEdxNSigmaLoose && std::abs(negTrackCast.tpcNSigmaPi()) < strangedEdxNSigmaLoose && std::abs(bachTrackCast.tpcNSigmaPi()) < strangedEdxNSigmaLoose && casc.sign() < 0) {
         if (doPPAnalysis || (std::abs(casc.dcabachtopv()) > MorePbPbsystCuts.dcaBachToPV && std::abs(casc.dcapostopv()) > MorePbPbsystCuts.dcaBaryonToPV &&
@@ -1288,7 +1329,7 @@ struct HStrangeCorrelationFilter {
       } else {
         // Load parameters for sideband subtraction
         initParametersFromCCDB(bc);
-        if (casc.pt() < 0.2f || casc.pt() > 14.5f) {
+        if (casc.pt() < minPtForParam || casc.pt() > maxPtForParam) {
           massNSigmaXi = (casc.mXi() - hXiMean->GetBinContent(hXiMean->FindBin(casc.pt()))) / (hXiWidth->GetBinContent(hXiWidth->FindBin(casc.pt())) + 1e-6);
           massNSigmaOmega = (casc.mOmega() - hOmegaMean->GetBinContent(hOmegaMean->FindBin(casc.pt()))) / (hOmegaWidth->GetBinContent(hOmegaWidth->FindBin(casc.pt())) + 1e-6);
         } else {
@@ -1303,27 +1344,27 @@ struct HStrangeCorrelationFilter {
       bool trueOmegaMinus = false;
       bool trueOmegaPlus = false;
       cascPhysicalPrimary = casc.isPhysicalPrimary();
-      if (casc.pdgCode() == 3312)
+      if (casc.pdgCode() == PDG_t::kXiMinus)
         trueXiMinus = true;
-      if (casc.pdgCode() == -3312)
+      if (casc.pdgCode() == PDG_t::kXiPlusBar)
         trueXiPlus = true;
-      if (casc.pdgCode() == 3334)
+      if (casc.pdgCode() == PDG_t::kOmegaMinus)
         trueOmegaMinus = true;
-      if (casc.pdgCode() == -3334)
+      if (casc.pdgCode() == PDG_t::kOmegaPlusBar)
         trueOmegaPlus = true;
       if (compatibleXiMinus && (!doTrueSelectionInMass || (trueXiMinus && cascPhysicalPrimary)))
         histos.fill(HIST("h3dMassXiMinus"), casc.pt(), casc.mXi(), cent);
       if (compatibleXiPlus && (!doTrueSelectionInMass || (trueXiPlus && cascPhysicalPrimary)))
         histos.fill(HIST("h3dMassXiPlus"), casc.pt(), casc.mXi(), cent);
-      if (compatibleOmegaMinus && (!doTrueSelectionInMass || (trueOmegaMinus && cascPhysicalPrimary)))
+      if (compatibleOmegaMinus && (!doTrueSelectionInMass || (trueOmegaMinus && cascPhysicalPrimary)) && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)
         histos.fill(HIST("h3dMassOmegaMinus"), casc.pt(), casc.mOmega(), cent);
-      if (compatibleOmegaPlus && (!doTrueSelectionInMass || (trueOmegaPlus && cascPhysicalPrimary)))
+      if (compatibleOmegaPlus && (!doTrueSelectionInMass || (trueOmegaPlus && cascPhysicalPrimary)) && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)
         histos.fill(HIST("h3dMassOmegaPlus"), casc.pt(), casc.mOmega(), cent);
 
       if (!fillTableOnlyWithCompatible ||
           ( // start major condition check
             ((compatibleXiMinus > 0 || compatibleXiPlus > 0) && std::abs(massNSigmaXi) < maxMassNSigma) ||
-            ((compatibleOmegaMinus > 0 || compatibleOmegaPlus > 0) && std::abs(massNSigmaOmega) < maxMassNSigma)) // end major condition check
+            ((compatibleOmegaMinus > 0 || compatibleOmegaPlus > 0) && std::abs(massNSigmaOmega) < maxMassNSigma && std::abs(massNSigmaXi) > nSigmaNearXiMassCenter)) // end major condition check
       ) {
         assocCascades(casc.collisionId(), casc.globalIndex(),
                       compatibleXiMinus, compatibleXiPlus, compatibleOmegaMinus, compatibleOmegaPlus,

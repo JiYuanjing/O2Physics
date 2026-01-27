@@ -89,11 +89,22 @@ DECLARE_SOA_COLUMN(EtaBcandidate, etaBcandidate, float);
 DECLARE_SOA_COLUMN(PhiBcandidate, phiBcandidate, float);
 DECLARE_SOA_COLUMN(RapBcandidate, rapBcandidate, float);
 DECLARE_SOA_COLUMN(LxyBcandidate, lxyBcandidate, float);
+DECLARE_SOA_COLUMN(LxyBcandidateErr, lxyBcandidateErr, float);
 DECLARE_SOA_COLUMN(LxyzBcandidate, lxyzBcandidate, float);
+DECLARE_SOA_COLUMN(LxyzBcandidateErr, lxyzBcandidateErr, float);
 DECLARE_SOA_COLUMN(LzBcandidate, lzBcandidate, float);
+DECLARE_SOA_COLUMN(LzBcandidateErr, lzBcandidateErr, float);
 DECLARE_SOA_COLUMN(TauxyBcandidate, tauxyBcandidate, float);
+DECLARE_SOA_COLUMN(TauxyBcandidateErr, tauxyBcandidateErr, float);
 DECLARE_SOA_COLUMN(TauzBcandidate, tauzBcandidate, float);
+DECLARE_SOA_COLUMN(TauzBcandidateErr, tauzBcandidateErr, float);
+DECLARE_SOA_COLUMN(MCLxyBcandidate, MClxyBcandidate, float);
+DECLARE_SOA_COLUMN(MCLxyzBcandidate, MClxyzBcandidate, float);
+DECLARE_SOA_COLUMN(MCLzBcandidate, MClzBcandidate, float);
+DECLARE_SOA_COLUMN(MCTauxyBcandidate, MCtauxyBcandidate, float);
+DECLARE_SOA_COLUMN(MCTauzBcandidate, MCtauzBcandidate, float);
 DECLARE_SOA_COLUMN(CosPBcandidate, cosPBcandidate, float);
+DECLARE_SOA_COLUMN(MCCosPBcandidate, MCcosPBcandidate, float);
 DECLARE_SOA_COLUMN(Chi2Bcandidate, chi2Bcandidate, float);
 DECLARE_SOA_COLUMN(GlobalIndexassoc, globalIndexassoc, uint64_t);
 DECLARE_SOA_COLUMN(GlobalIndexleg1, globalIndexleg1, uint64_t);
@@ -173,8 +184,10 @@ DECLARE_SOA_TABLE(Prefilter, "AOD", "DQPREFILTER", dqanalysisflags::IsBarrelSele
 DECLARE_SOA_TABLE(BmesonCandidates, "AOD", "DQBMESONS",
                   dqanalysisflags::RunNumber, dqanalysisflags::EventIdx, dqanalysisflags::EventTimestamp,
                   dqanalysisflags::massBcandidate, dqanalysisflags::MassDileptonCandidate, dqanalysisflags::deltaMassBcandidate, dqanalysisflags::pTBcandidate, dqanalysisflags::EtaBcandidate, dqanalysisflags::PhiBcandidate, dqanalysisflags::RapBcandidate,
-                  dqanalysisflags::LxyBcandidate, dqanalysisflags::LxyzBcandidate, dqanalysisflags::LzBcandidate,
-                  dqanalysisflags::TauxyBcandidate, dqanalysisflags::TauzBcandidate, dqanalysisflags::CosPBcandidate, dqanalysisflags::Chi2Bcandidate,
+                  dqanalysisflags::LxyBcandidate, dqanalysisflags::LxyBcandidateErr, dqanalysisflags::LxyzBcandidate, dqanalysisflags::LxyzBcandidateErr, dqanalysisflags::LzBcandidate, dqanalysisflags::LzBcandidateErr,
+                  dqanalysisflags::TauxyBcandidate, dqanalysisflags::TauxyBcandidateErr, dqanalysisflags::TauzBcandidate, dqanalysisflags::TauzBcandidateErr, dqanalysisflags::CosPBcandidate, dqanalysisflags::Chi2Bcandidate,
+                  dqanalysisflags::MCLxyBcandidate, dqanalysisflags::MCLxyzBcandidate, dqanalysisflags::MCLzBcandidate,
+                  dqanalysisflags::MCTauxyBcandidate, dqanalysisflags::MCTauzBcandidate, dqanalysisflags::MCCosPBcandidate,
                   dqanalysisflags::GlobalIndexassoc, dqanalysisflags::GlobalIndexleg1, dqanalysisflags::GlobalIndexleg2,
                   dqanalysisflags::PINassoc, dqanalysisflags::Etaassoc, dqanalysisflags::Ptpair, dqanalysisflags::Etapair,
                   dqanalysisflags::PINleg1, dqanalysisflags::Etaleg1, dqanalysisflags::PINleg2, dqanalysisflags::Etaleg2,
@@ -681,7 +694,7 @@ struct AnalysisTrackSelection {
 
       // compute MC matching decisions and fill histograms for matched associations
       int isig = 0;
-      if (filterMap > 0 && track.has_reducedMCTrack()) {
+      if (filterMap > 0 && track.has_reducedMCTrack() && fConfigQA) {
         // loop over all MC signals
         for (auto sig = fMCSignals.begin(); sig != fMCSignals.end(); sig++, isig++) {
           // check if this MC signal is matched
@@ -1312,6 +1325,7 @@ struct AnalysisSameEventPairing {
   Produces<aod::DileptonsInfo> dileptonInfoList;
   Produces<aod::JPsieeCandidates> PromptNonPromptSepTable;
   Produces<aod::OniaMCTruth> MCTruthTableEffi;
+  Produces<aod::DileptonPolarization> dileptonPolarList;
 
   o2::base::MatLayerCylSet* fLUT = nullptr;
   int fCurrentRun; // needed to detect if the run changed and trigger update of calibrations etc.
@@ -1322,7 +1336,7 @@ struct AnalysisSameEventPairing {
     Configurable<std::string> track{"cfgTrackCuts", "jpsiO2MCdebugCuts2", "Comma separated list of barrel track cuts"};
     Configurable<std::string> muon{"cfgMuonCuts", "", "Comma separated list of muon cuts"};
     Configurable<std::string> pair{"cfgPairCuts", "", "Comma separated list of pair cuts, !!! Use only if you know what you are doing, otherwise leave empty"};
-    Configurable<std::string> MCgenAcc{"cfgMCGenAccCut", "", "cut for MC generated particles acceptance"};
+    Configurable<std::string> MCgenAcc{"cfgMCGenAccCuts", "", "Comma separated list of MC generated particles acceptance cuts, !!! Use only if you know what you are doing, otherwise leave empty"};
     // TODO: Add pair cuts via JSON
   } fConfigCuts;
 
@@ -1341,6 +1355,7 @@ struct AnalysisSameEventPairing {
     Configurable<bool> useRemoteField{"cfgUseRemoteField", false, "Chose whether to fetch the magnetic field from ccdb or set it manually"};
     Configurable<float> magField{"cfgMagField", 5.0f, "Manually set magnetic field"};
     Configurable<bool> flatTables{"cfgFlatTables", false, "Produce a single flat tables with all relevant information of the pairs and single tracks"};
+    Configurable<bool> polarTables{"cfgPolarTables", false, "Produce tables with dilepton polarization information"};
     Configurable<bool> useKFVertexing{"cfgUseKFVertexing", false, "Use KF Particle for secondary vertex reconstruction (DCAFitter is used by default)"};
     Configurable<bool> useAbsDCA{"cfgUseAbsDCA", false, "Use absolute DCA minimization instead of chi^2 minimization in secondary vertexing"};
     Configurable<bool> propToPCA{"cfgPropToPCA", false, "Propagate tracks to secondary vertex"};
@@ -1383,7 +1398,7 @@ struct AnalysisSameEventPairing {
   std::vector<MCSignal*> fGenMCSignals;
 
   std::vector<AnalysisCompositeCut> fPairCuts;
-  AnalysisCompositeCut fMCGenAccCut;
+  std::vector<AnalysisCut*> fMCGenAccCuts;
   bool fUseMCGenAccCut = false;
 
   uint32_t fTrackFilterMask; // mask for the track cuts required in this task to be applied on the barrel cuts produced upstream
@@ -1470,16 +1485,6 @@ struct AnalysisSameEventPairing {
       for (auto& t : addTrackCuts) {
         tempCutsStr += Form(",%s", t->GetName());
       }
-    }
-
-    // get the mc generated acceptance cut
-    TString mcGenAccCutStr = fConfigCuts.MCgenAcc.value;
-    if (mcGenAccCutStr != "") {
-      AnalysisCut* cut = dqcuts::GetAnalysisCut(mcGenAccCutStr.Data());
-      if (cut != nullptr) {
-        fMCGenAccCut.AddCut(cut);
-      }
-      fUseMCGenAccCut = true;
     }
 
     // check that the barrel track cuts array required in this task is not empty
@@ -1650,6 +1655,19 @@ struct AnalysisSameEventPairing {
       } // end loop over cuts
     } // end if (muonCutsStr)
 
+    // get the mc generated acceptance cuts
+    TString mcgenCutsStr = fConfigCuts.MCgenAcc.value;
+    if (!mcgenCutsStr.IsNull()) {
+      std::unique_ptr<TObjArray> objArray(mcgenCutsStr.Tokenize(","));
+      for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
+        AnalysisCut* cut = dqcuts::GetAnalysisCut(objArray->At(icut)->GetName());
+        if (cut != nullptr) {
+          fMCGenAccCuts.push_back(cut);
+        }
+      }
+      fUseMCGenAccCut = true;
+    }
+
     // Add histogram classes for each specified MCsignal at the generator level
     // TODO: create a std::vector of hist classes to be used at Fill time, to avoid using Form in the process function
     TString sigGenNamesStr = fConfigMC.genSignals.value;
@@ -1682,6 +1700,12 @@ struct AnalysisSameEventPairing {
           histNames += Form("MCTruthGenPair_%s;", sig->GetName());
           histNames += Form("MCTruthGenPairSel_%s;", sig->GetName());
           fHasTwoProngGenMCsignals = true;
+          // for these pair level signals, also add histograms for each MCgenAcc cut if specified
+          if (fUseMCGenAccCut) {
+            for (auto& cut : fMCGenAccCuts) {
+              histNames += Form("MCTruthGenPairSel_%s_%s;", sig->GetName(), cut->GetName());
+            }
+          }
         }
       }
     }
@@ -1793,6 +1817,9 @@ struct AnalysisSameEventPairing {
       dileptonMiniTreeGen.reserve(1);
       dileptonMiniTreeRec.reserve(1);
     }
+    if (fConfigOptions.polarTables.value) {
+      dileptonPolarList.reserve(1);
+    }
     constexpr bool eventHasQvector = ((TEventFillMap & VarManager::ObjTypes::ReducedEventQvector) > 0);
     constexpr bool trackHasCov = ((TTrackFillMap & VarManager::ObjTypes::ReducedTrackBarrelCov) > 0);
 
@@ -1886,6 +1913,13 @@ struct AnalysisSameEventPairing {
                                     VarManager::fgValues[VarManager::kKFMassGeoTop], VarManager::fgValues[VarManager::kKFChi2OverNDFGeoTop],
                                     VarManager::fgValues[VarManager::kVertexingTauzProjected], VarManager::fgValues[VarManager::kVertexingTauxyProjected],
                                     VarManager::fgValues[VarManager::kVertexingLzProjected], VarManager::fgValues[VarManager::kVertexingLxyProjected]);
+                }
+                if (fConfigOptions.polarTables.value && t1.has_reducedMCTrack() && t2.has_reducedMCTrack()) {
+                  dileptonPolarList(VarManager::fgValues[VarManager::kCosThetaHE], VarManager::fgValues[VarManager::kPhiHE], VarManager::fgValues[VarManager::kPhiTildeHE],
+                                    VarManager::fgValues[VarManager::kCosThetaCS], VarManager::fgValues[VarManager::kPhiCS], VarManager::fgValues[VarManager::kPhiTildeCS],
+                                    VarManager::fgValues[VarManager::kCosThetaPP], VarManager::fgValues[VarManager::kPhiPP], VarManager::fgValues[VarManager::kPhiTildePP],
+                                    VarManager::fgValues[VarManager::kCosThetaRM],
+                                    VarManager::fgValues[VarManager::kCosThetaStarTPC], VarManager::fgValues[VarManager::kCosThetaStarFT0A], VarManager::fgValues[VarManager::kCosThetaStarFT0C]);
                 }
               }
             }
@@ -2109,12 +2143,12 @@ struct AnalysisSameEventPairing {
               if (!(cut.IsSelected(VarManager::fgValues))) // apply pair cuts
                 continue;
               if (sign1 * sign2 < 0) {
-                fHistMan->FillHistClass(histNames[ncuts + icut * ncuts + iPairCut][0].Data(), VarManager::fgValues);
+                fHistMan->FillHistClass(histNames[ncuts + icut * fPairCuts.size() + iPairCut][0].Data(), VarManager::fgValues);
               } else {
                 if (sign1 > 0) {
-                  fHistMan->FillHistClass(histNames[ncuts + icut * ncuts + iPairCut][1].Data(), VarManager::fgValues);
+                  fHistMan->FillHistClass(histNames[ncuts + icut * fPairCuts.size() + iPairCut][1].Data(), VarManager::fgValues);
                 } else {
-                  fHistMan->FillHistClass(histNames[ncuts + icut * ncuts + iPairCut][2].Data(), VarManager::fgValues);
+                  fHistMan->FillHistClass(histNames[ncuts + icut * fPairCuts.size() + iPairCut][2].Data(), VarManager::fgValues);
                 }
               }
             } // end loop (pair cuts)
@@ -2134,12 +2168,6 @@ struct AnalysisSameEventPairing {
 
     for (auto& mctrack : mcTracks) {
       VarManager::FillTrackMC(mcTracks, mctrack);
-      // if we have a mc generated acceptance cut, apply it here
-      if (fUseMCGenAccCut) {
-        if (!fMCGenAccCut.IsSelected(VarManager::fgValues)) {
-          continue;
-        }
-      }
       // NOTE: Signals are checked here mostly based on the skimmed MC stack, so depending on the requested signal, the stack could be incomplete.
       // NOTE: However, the working model is that the decisions on MC signals are precomputed during skimming and are stored in the mcReducedFlags member.
       // TODO:  Use the mcReducedFlags to select signals
@@ -2163,12 +2191,6 @@ struct AnalysisSameEventPairing {
           continue;
         }
         VarManager::FillTrackMC(mcTracks, track);
-        // if we have a mc generated acceptance cut, apply it here
-        if (fUseMCGenAccCut) {
-          if (!fMCGenAccCut.IsSelected(VarManager::fgValues)) {
-            continue;
-          }
-        }
         auto track_raw = mcTracks.rawIteratorAt(track.globalIndex());
         mcDecision = 0;
         isig = 0;
@@ -2199,11 +2221,6 @@ struct AnalysisSameEventPairing {
             }
             if (sig->CheckSignal(true, t1_raw, t2_raw)) {
               VarManager::FillPairMC<TPairType>(t1, t2);
-              if (fUseMCGenAccCut) {
-                if (!fMCGenAccCut.IsSelected(VarManager::fgValues)) {
-                  continue;
-                }
-              }
               fHistMan->FillHistClass(Form("MCTruthGenPair_%s", sig->GetName()), VarManager::fgValues);
             }
           }
@@ -2234,12 +2251,15 @@ struct AnalysisSameEventPairing {
               if (sig->CheckSignal(true, t1_raw, t2_raw)) {
                 mcDecision |= (static_cast<uint32_t>(1) << isig);
                 VarManager::FillPairMC<TPairType>(t1, t2);
+                fHistMan->FillHistClass(Form("MCTruthGenPairSel_%s", sig->GetName()), VarManager::fgValues);
+                // Fill also acceptance cut histograms if requested
                 if (fUseMCGenAccCut) {
-                  if (!fMCGenAccCut.IsSelected(VarManager::fgValues)) {
-                    continue;
+                  for (auto& cut : fMCGenAccCuts) {
+                    if (cut->IsSelected(VarManager::fgValues)) {
+                      fHistMan->FillHistClass(Form("MCTruthGenPairSel_%s_%s", sig->GetName(), cut->GetName()), VarManager::fgValues);
+                    }
                   }
                 }
-                fHistMan->FillHistClass(Form("MCTruthGenPairSel_%s", sig->GetName()), VarManager::fgValues);
                 if (useMiniTree.fConfigMiniTree) {
                   // WARNING! To be checked
                   dileptonMiniTreeGen(mcDecision, -999, t1.pt(), t1.eta(), t1.phi(), t2.pt(), t2.eta(), t2.phi());
@@ -2280,10 +2300,7 @@ struct AnalysisSameEventPairing {
                                         MyBarrelTracksWithCovWithAmbiguitiesWithColl const& barrelTracks, ReducedMCEvents const& mcEvents, ReducedMCTracks const& mcTracks)
   {
     runSameEventPairing<true, VarManager::kDecayToEE, gkEventFillMapWithCov, gkTrackFillMapWithCovWithColl>(events, trackAssocsPerCollision, barrelAssocs, barrelTracks, mcEvents, mcTracks);
-    // Feature replaced by processMCGen
-    /*  if (fConfigMC.runMCGenPair) {
-        runMCGen<VarManager::kDecayToEE>(mcEvents, mcTracks);
-      }*/
+    runMCGenWithGrouping<VarManager::kDecayToEE>(events, mcEvents, mcTracks);
   }
 
   void processMuonOnlySkimmed(MyEventsVtxCovSelected const& events,
@@ -3575,6 +3592,7 @@ struct AnalysisDileptonTrack {
   Configurable<float> fConfigMCGenDileptonLegEtaAbs{"cfgMCGenDileptonLegEtaAbs", 0.9f, "eta abs range for the dilepton leg"};
   Configurable<float> fConfigMCGenHadronEtaAbs{"cfgMCGenHadronEtaAbs", 0.9f, "eta abs range for the hadron"};
   Configurable<bool> fConfigUseMCRapcut{"cfgUseMCRapcut", false, "Use Rap cut for dileptons used in the triplet vertexing(reconstructed)"};
+  Configurable<bool> fConfigUseCorrectlyAssociatedMC{"cfgUseCorrectlyAssociatedMC", true, "Use only correctly associated track to construct triplet"};
   Configurable<int> fConfigMixingDepth{"cfgMixingDepth", 5, "Event mixing pool depth"};
 
   int fCurrentRun; // needed to detect if the run changed and trigger update of calibrations etc.
@@ -3954,7 +3972,7 @@ struct AnalysisDileptonTrack {
 
   // Template function to run pair - hadron combinations
   template <int TCandidateType, uint32_t TEventFillMap, uint32_t TTrackFillMap, typename TEvent, typename TTracks, typename TTrackAssocs, typename TDileptons>
-  void runDileptonHadron(TEvent const& event, TTrackAssocs const& assocs, TTracks const& tracks, TDileptons const& dileptons, ReducedMCEvents const& /*mcEvents*/, ReducedMCTracks const& /*mcTracks*/)
+  void runDileptonHadron(TEvent const& event, TTrackAssocs const& assocs, TTracks const& tracks, TDileptons const& dileptons, ReducedMCEvents const& /*mcEvents*/, ReducedMCTracks const& mcTracks)
   {
     VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
     VarManager::ResetValues(0, VarManager::kNVars, fValuesDilepton);
@@ -3965,6 +3983,9 @@ struct AnalysisDileptonTrack {
 
     uint32_t mcDecision = static_cast<uint32_t>(0);
     size_t isig = 0;
+    bool isCorrectAssoc_lepton1 = false;
+    bool isCorrectAssoc_lepton2 = false;
+    bool isCorrectAssoc_assoc = false;
 
     for (auto dilepton : dileptons) {
       // get full track info of tracks based on the index
@@ -3983,6 +4004,12 @@ struct AnalysisDileptonTrack {
       float rap = dilepton.rap();
       if (fConfigUseMCRapcut && abs(rap) > fConfigDileptonRapCutAbs)
         continue;
+
+      // Correct association
+      if (fConfigUseCorrectlyAssociatedMC) {
+        isCorrectAssoc_lepton1 = (lepton1MC.reducedMCevent() == event.reducedMCevent());
+        isCorrectAssoc_lepton2 = (lepton2MC.reducedMCevent() == event.reducedMCevent());
+      }
 
       VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
 
@@ -4018,6 +4045,8 @@ struct AnalysisDileptonTrack {
 
       // loop over track associations
       for (auto& assoc : assocs) {
+        VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
+        VarManager::ResetValues(0, VarManager::kNVars, fValuesDilepton);
 
         uint32_t trackSelection = 0;
         if constexpr (TCandidateType == VarManager::kBtoJpsiEEK) {
@@ -4032,11 +4061,22 @@ struct AnalysisDileptonTrack {
           if (track.globalIndex() == dilepton.index0Id() || track.globalIndex() == dilepton.index1Id()) {
             continue;
           }
+
+          auto trackMC = track.reducedMCTrack();
+          if (fConfigUseCorrectlyAssociatedMC) { // check if correctly associated
+            isCorrectAssoc_assoc = (trackMC.reducedMCevent() == event.reducedMCevent());
+          }
+          bool isCorrect_triplet = isCorrectAssoc_lepton1 && isCorrectAssoc_lepton2 && isCorrectAssoc_assoc;
+          if (fConfigUseCorrectlyAssociatedMC) {
+            if (!isCorrect_triplet) {
+              continue;
+            }
+          }
+
           // compute needed quantities
           VarManager::FillDileptonHadron(dilepton, track, fValuesHadron);
           VarManager::FillDileptonTrackVertexing<TCandidateType, TEventFillMap, TTrackFillMap>(event, lepton1, lepton2, track, fValuesHadron);
 
-          auto trackMC = track.reducedMCTrack();
           mcDecision = 0;
           isig = 0;
           for (auto sig = fRecMCSignals.begin(); sig != fRecMCSignals.end(); sig++, isig++) {
@@ -4044,12 +4084,33 @@ struct AnalysisDileptonTrack {
               mcDecision |= (static_cast<uint32_t>(1) << isig);
             }
           }
+
+          // fill MC truth values for the B hadron
+          auto currentMCParticle = trackMC;
+          if (mcDecision > 0) {
+            while (true) {
+              if (currentMCParticle.has_mothers()) {
+                currentMCParticle = currentMCParticle.template mothers_first_as<ReducedMCTracks>();
+                if (std::abs(currentMCParticle.pdgCode()) > 500 && std::abs(currentMCParticle.pdgCode()) < 549) { // nb! hardcoded pdgcodes
+                  VarManager::FillTrackMC(mcTracks, currentMCParticle, fValuesHadron);
+                  break;
+                }
+              } else {
+                break;
+              }
+            }
+            // fill mc truth vertexing (for the associated track as this will have a displaced vertex, while the B hadron is produced in the PV)
+            VarManager::FillTrackCollisionMC<VarManager::kBtoJpsiEEK, TEventFillMap>(trackMC, currentMCParticle, event.reducedMCevent(), fValuesHadron);
+          }
+
           // table to be written out for ML analysis
           BmesonsTable(event.runNumber(), event.globalIndex(), event.timestamp(),
                        fValuesHadron[VarManager::kPairMass], dilepton.mass(), fValuesHadron[VarManager::kDeltaMass], fValuesHadron[VarManager::kPairPt], fValuesHadron[VarManager::kPairEta], fValuesHadron[VarManager::kPairPhi], fValuesHadron[VarManager::kPairRap],
-                       fValuesHadron[VarManager::kVertexingLxy], fValuesHadron[VarManager::kVertexingLxyz], fValuesHadron[VarManager::kVertexingLz],
-                       fValuesHadron[VarManager::kVertexingTauxy], fValuesHadron[VarManager::kVertexingTauz], fValuesHadron[VarManager::kCosPointingAngle],
+                       fValuesHadron[VarManager::kVertexingLxy], fValuesHadron[VarManager::kVertexingLxyErr], fValuesHadron[VarManager::kVertexingLxyz], fValuesHadron[VarManager::kVertexingLxyzErr], fValuesHadron[VarManager::kVertexingLz], fValuesHadron[VarManager::kVertexingLzErr],
+                       fValuesHadron[VarManager::kVertexingTauxy], fValuesHadron[VarManager::kVertexingTauxyErr], fValuesHadron[VarManager::kVertexingTauz], fValuesHadron[VarManager::kVertexingTauzErr], fValuesHadron[VarManager::kCosPointingAngle],
                        fValuesHadron[VarManager::kVertexingChi2PCA],
+                       fValuesHadron[VarManager::kMCVertexingLxy], fValuesHadron[VarManager::kMCVertexingLxyz], fValuesHadron[VarManager::kMCVertexingLz],
+                       fValuesHadron[VarManager::kMCVertexingTauxy], fValuesHadron[VarManager::kMCVertexingTauz], fValuesHadron[VarManager::kMCCosPointingAngle],
                        track.globalIndex(), lepton1.globalIndex(), lepton2.globalIndex(),
                        track.tpcInnerParam(), track.eta(), dilepton.pt(), dilepton.eta(), lepton1.tpcInnerParam(), lepton1.eta(), lepton2.tpcInnerParam(), lepton2.eta(),
                        track.tpcNSigmaKa(), track.tpcNSigmaPi(), track.tpcNSigmaPr(), track.tofNSigmaKa(),
