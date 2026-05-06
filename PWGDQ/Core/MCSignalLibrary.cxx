@@ -1959,7 +1959,6 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     return signal;
   }
 
-<<<<<<< HEAD
   // Yuanjing: add triplets 
   if (!nameStr.compare("eeFromJpsiProtonAny")) {
     MCProng prongElectron(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false});
@@ -1985,7 +1984,7 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     signal = new MCSignal(name, "Electron pair from non-prompt Jpsi and proton", {prongElectron, prongElectron, prongProton}, {-1, -1, -1});
     return signal;
   }
-=======
+
   if (!nameStr.compare("eePiPiFromPromptPsi2S")) {
     MCProng pronge(3, {11, 443, 100443}, {true, true, true}, {false, false, false}, {0, 0, 0}, {0, 0, 0}, {false, false, false}, false, {503}, {true});
     MCProng prongPi(2, {211, 100443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false}, false, {503}, {true});
@@ -2000,7 +1999,6 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     return signal;
   }
 
->>>>>>> upstream/master
   if (!nameStr.compare("eeFromPromptJpsiAnyPrimary")) {
     MCProng pronge(2, {11, 443}, {true, true}, {false, false}, {0, 0}, {0, 0}, {false, false}, false, {503}, {true});
     pronge.SetSourceBit(0, MCProng::kPhysicalPrimary);

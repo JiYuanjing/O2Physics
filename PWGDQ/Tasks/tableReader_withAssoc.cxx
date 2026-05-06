@@ -3475,6 +3475,7 @@ struct AnalysisDileptonTrack {
   Configurable<int> fConfigDileptonSign{"cfgDileptonSign", 0, "The sign of the dilepton used in analysis, lepton1_sign * lepton2_sign"};
   Configurable<float> fConfigDileptonLowMass{"cfgDileptonLowMass", 2.8, "Low mass cut for the dileptons used in analysis"};
   Configurable<float> fConfigDileptonHighMass{"cfgDileptonHighMass", 3.2, "High mass cut for the dileptons used in analysis"};
+  Configurable<float> fConfigDileptonpTCut{"cfgDileptonpTCut", 0.0, "pT cut for dileptons used in the triplet vertexing"};
   Configurable<float> fConfigDileptonLowpTCut{"cfgDileptonLowpTCut", 0.0, "Low pT cut for dileptons used in the triplet vertexing"};
   Configurable<float> fConfigDileptonHighpTCut{"cfgDileptonHighpTCut", 1E5, "High pT cut for dileptons used in the triplet vertexing"};
   Configurable<float> fConfigDileptonRapCutAbs{"cfgDileptonRapCutAbs", 1.0, "Rap cut for dileptons used in the triplet vertexing"};
@@ -4404,7 +4405,7 @@ struct AnalysisDileptonTrack {
           double kstar= VarManager::fgValues[VarManager::kDileptonHadronKstar]; 
           double dilepton_pt = VarManager::fgValues[VarManager::kPairPtDau]; 
           double dilepton_Lxy = 0.;
-          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonpTCut && dilepton_Lxy>fConfigDileptonLxyCut;
+          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonLowpTCut && dilepton_Lxy>fConfigDileptonLxyCut;
           if (!passDileptonCut) {
             continue;
           }
@@ -4534,7 +4535,7 @@ struct AnalysisDileptonTrack {
           double kstar= VarManager::fgValues[VarManager::kDileptonHadronKstar]; 
           double dilepton_pt = VarManager::fgValues[VarManager::kPairPtDau]; 
           double dilepton_Lxy = 0.;
-          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonpTCut && dilepton_Lxy>fConfigDileptonLxyCut;
+          bool passDileptonCut = dilepton_mass>fConfigDileptonLowMass && dilepton_mass<fConfigDileptonHighMass && dilepton_pt>fConfigDileptonLowpTCut&& dilepton_Lxy>fConfigDileptonLxyCut;
           if (!passDileptonCut) {
             continue;
           }
