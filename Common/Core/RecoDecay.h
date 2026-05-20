@@ -284,12 +284,12 @@ struct RecoDecay {
   /// \param posSV {x, y, z} position of the secondary vertex
   /// \param mom {x, y, z} momentum array
   /// \return cosine of pointing angle in {r, z}
-  template <std::size_t N, typename T, typename U, typename V>
+  template <typename T, typename U, typename V>
   static double cpaRZ(const T& posPV, const U& posSV, const std::array<V, 3>& mom)
   {
     // CPARZ = (r . pz)/(|r| |pz|)
-    auto lineDecay = std::array{sqrtSumOfSquares(posSV[0] - posPV[0], posSV[1] - posPV[1]), posSV[2] - posPV[2]};
-    auto momRZ = std::array{sqrtSumOfSquares(mom[0], mom[1]), mom[2]};
+    auto lineDecay = std::array{sqrtSumOfSquares(posSV[0] - posPV[0], posSV[1] - posPV[1]), static_cast<double>(posSV[2] - posPV[2])};
+    auto momRZ = std::array{sqrtSumOfSquares(mom[0], mom[1]), static_cast<double>(mom[2])};
     auto cos = dotProd(lineDecay, momRZ) / std::sqrt(mag2(lineDecay) * mag2(momRZ));
     if (cos < -1.) {
       return -1.;
