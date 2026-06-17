@@ -4826,6 +4826,9 @@ struct AnalysisDileptonTrack {
       auto lepton2 = tracks.rawIteratorAt(dilepton.index1Id());
       auto lepton1MC = lepton1.reducedMCTrack();
       auto lepton2MC = lepton2.reducedMCTrack();
+
+
+      // if (lepton1.reducedMCeventId() == lepton2.reducedMCeventId()) continue;
       // Check that the dilepton has zero charge
       if (dilepton.sign() != 0) {
         continue;
@@ -4866,8 +4869,7 @@ struct AnalysisDileptonTrack {
           // VarManager::FillDileptonTrackVertexing<TCandidateType, TEventFillMap, TTrackFillMap>(event, lepton1, lepton2, track, fValuesHadron);
           // add fill MC, used for weighting
           auto trackMC = track.reducedMCTrack();
-          VarManager::FillDileptonHadronFemtoMC( lepton1MC, lepton2MC, trackMC, fValuesHadron);  
-
+          
           mcDecision = 0;
           isig = 0;
           for (auto sig = fRecMCSignals.begin(); sig != fRecMCSignals.end(); sig++, isig++) {
@@ -4875,6 +4877,34 @@ struct AnalysisDileptonTrack {
               mcDecision |= (static_cast<uint32_t>(1) << isig);
             }
           }
+
+          // hard coded for Jpsi
+          // get mother for test
+          if (mcDecision>0 && lepton1MC.has_mothers() && lepton2MC.has_mothers()) {
+
+            auto MotherMc = lepton1MC.template mothers_first_as<ReducedMCTracks>();
+            if (std::abs(MotherMc.pdgCode())==443)
+            {
+              // add Jpsi Gen infomation
+              VarManager::FillDileptonHadronFemtoMC( MotherMc, lepton1MC, lepton2MC, trackMC, fValuesHadron);   
+            }
+            // looking for non-prompt mother
+            // if (mcDecision > 0) {
+            //   while (true) {
+            //     if (currentMCParticle.has_mothers()) {
+            //       currentMCParticle = currentMCParticle.template mothers_first_as<ReducedMCTracks>();
+            //       if (std::abs(currentMCParticle.pdgCode()) > 500 && std::abs(currentMCParticle.pdgCode()) < 549) { // nb! hardcoded pdgcodes
+            //         // VarManager::FillTrackMC(mcTracks, currentMCParticle, fValuesHadron);
+            //         // break;
+            //       }
+            //     } else {
+            //       break;
+            //     }
+            //   }
+              // fill mc truth vertexing (for the associated track as this will have a displaced vertex, while the B hadron is produced in the PV)
+              // VarManager::FillTrackCollisionMC<VarManager::kBtoJpsiEEK, TEventFillMap>(trackMC, currentMCParticle, event.reducedMCevent(), fValuesHadron);
+          }
+          
         }
 
         // Fill histograms for the triplets

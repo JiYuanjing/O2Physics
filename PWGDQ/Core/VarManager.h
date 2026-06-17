@@ -1426,7 +1426,7 @@ class VarManager : public TObject
   template <typename T1, typename T2>
   static void FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <typename TMC>
-  static void FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& trackMc2, TMC const& trackMc3, float* values);
+  static void FillDileptonHadronFemtoMC(TMC const& jpsiMc, TMC const& trackMc1, TMC const& trackMc2, TMC const& trackMc3, float* values);
   template <typename T1, typename T2>
   static void FillElectronElectronHadronFemto(T1 const& t1, T1 const& t2, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
   template <typename T1, typename T2>
@@ -6200,13 +6200,16 @@ void VarManager::FillDileptonHadronFemto(T1 const& dilepton, T2 const& hadron, f
 }
 
 template <typename TMC>
-void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& trackMc2, TMC const& trackMc3, float* values)
+void VarManager::FillDileptonHadronFemtoMC(TMC const& jpsiMc, TMC const& trackMc1, TMC const& trackMc2, TMC const& trackMc3, float* values)
 {
   if (!values) {
     values = fgValues;
   }
 
   if (fgUsedVars[kJpsiPMcWt] || fgUsedVars[kJpsiPMcKstar]) {
+
+    double JpsiMass = o2::constants::physics::MassJPsi;
+    ROOT::Math::PtEtaPhiMVector mcJpsi(jpsiMc.pt(), jpsiMc.eta(), jpsiMc.phi(), JpsiMass);
     // double mcmass1 = TDatabasePDG::Instance()->GetParticle(trackMc1.pdgCode())->Mass();
     // double mcmass2 = TDatabasePDG::Instance()->GetParticle(trackMc2.pdgCode())->Mass();
     double mcmass1 = o2::constants::physics::MassElectron;
@@ -6216,7 +6219,9 @@ void VarManager::FillDileptonHadronFemtoMC(TMC const& trackMc1, TMC const& track
     ROOT::Math::PtEtaPhiMVector mcl1(trackMc1.pt(), trackMc1.eta(), trackMc1.phi(), mcmass1);
     ROOT::Math::PtEtaPhiMVector mcl2(trackMc2.pt(), trackMc2.eta(), trackMc2.phi(), mcmass2);
     ROOT::Math::PtEtaPhiMVector mcv2(trackMc3.pt(), trackMc3.eta(), trackMc3.phi(), mcmass3);
-    ROOT::Math::PtEtaPhiMVector mcv1 = mcl1+mcl2;
+    // ROOT::Math::PtEtaPhiMVector mcv1 = mcl1+mcl2;
+    // Use Generated Jpsi four momentum
+    ROOT::Math::PtEtaPhiMVector mcv1 = mcJpsi;
     ROOT::Math::PtEtaPhiMVector mcv12 = mcv1 + mcv2;
     ROOT::Math::PtEtaPhiMVector mcv12_Qvect = mcv1 - mcv2;
     double mcPinv = mcv12.M();
