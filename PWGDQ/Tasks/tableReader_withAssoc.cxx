@@ -3691,6 +3691,8 @@ struct AnalysisDileptonTrack {
   Configurable<float> fConfigDileptonHighpTCut{"cfgDileptonHighpTCut", 1E5, "High pT cut for dileptons used in the triplet vertexing"};
   Configurable<float> fConfigDileptonRapCutAbs{"cfgDileptonRapCutAbs", 1.0, "Rap cut for dileptons used in the triplet vertexing"};
   Configurable<float> fConfigDileptonLxyCut{"cfgDileptonLxyCut", 0.0, "Lxy cut for dileptons used in the triplet vertexing"};
+  Configurable<float> fConfigDileptonLxyCutHigh{"cfgDileptonLxyCutHigh", 0.0, "Lxy cut for dileptons used in the triplet vertexing"};
+  Configurable<float> fConfigDileptonLxyCutLow{"cfgDileptonLxyCutLow", 0.0, "Lxy cut for dileptons used in the triplet vertexing"};
   Configurable<bool> fConfigUseKFVertexing{"cfgUseKFVertexing", false, "Use KF Particle for secondary vertex reconstruction (DCAFitter is used by default)"};
 
   Configurable<std::string> fConfigHistogramSubgroups{"cfgDileptonTrackHistogramsSubgroups", "invmass,vertexing", "Comma separated list of dilepton-track histogram subgroups"};
@@ -3737,7 +3739,7 @@ struct AnalysisDileptonTrack {
   // TODO: The filter expressions seem to always use the default value of configurables, not the values from the actual configuration file
   Filter eventFilter = aod::dqanalysisflags::isEventSelected > static_cast<uint8_t>(0);
   // modified by Yuanjing, keep like sign or unlike sign based on fConfigDileptonSign 
-  Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonLowpTCut&& aod::reducedpair::pt<fConfigDileptonHighpTCut && aod::reducedpair::mass> fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && nabs(aod::reducedpair::sign) == fConfigDileptonSign && aod::reducedpair::lxy> fConfigDileptonLxyCut;
+  Filter dileptonFilter = aod::reducedpair::pt > fConfigDileptonLowpTCut&& aod::reducedpair::pt<fConfigDileptonHighpTCut && aod::reducedpair::mass> fConfigDileptonLowMass&& aod::reducedpair::mass<fConfigDileptonHighMass && nabs(aod::reducedpair::sign) == fConfigDileptonSign && aod::reducedpair::lxy> fConfigDileptonLxyCut && aod::reducedpair::lxy> fConfigDileptonLxyCutLow && aod::reducedpair::lxy<fConfigDileptonLxyCutHigh;
   
   Filter filterBarrel = aod::dqanalysisflags::isBarrelSelected > static_cast<uint32_t>(0);
   Filter filterMuon = aod::dqanalysisflags::isMuonSelected > static_cast<uint32_t>(0);
