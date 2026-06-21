@@ -1124,6 +1124,18 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("protonPIDPV_TPC")) {
+    // cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF7"));
+    cut->AddCut(GetAnalysisCut("protonPVcut2"));
+    return cut;
+  }
+
+  if (!nameStr.compare("protonPIDPV_TOF")) {
+    cut->AddCut(GetAnalysisCut("protonPID_TPCnTOF5"));
+    cut->AddCut(GetAnalysisCut("protonPVcut2"));
+    return cut;
+  }
+
   // check pion contamination 
   if (!nameStr.compare("pionPIDPV")) {
     cut->AddCut(GetAnalysisCut("pionPID_TPCnTOF_pure"));
@@ -6327,7 +6339,8 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("protonPID_TPCnTOF7")) {
     cut->AddCut(VarManager::kTPCnSigmaPr, -2.5, 2.5, false, VarManager::kPt, 0.0, 0.8, false);
-    cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kPt, 0.8, 1e+10, false);
+    // cut->AddCut(VarManager::kTPCTOFnSigmaPr, 0.0, 2.5, false, VarManager::kPt, 0.8, 1e+10, false);
+    cut->AddCut(VarManager::kTOFnSigmaPr, -2, 4, false, VarManager::kPt, 0.8, 1e+10, false);
     return cut;
   }
 
